@@ -1,0 +1,7 @@
+print("\t\t.config/nvim/lua/jsaez/plugins/init.lua")
+require('jsaez.plugins.plugins')
+require('jsaez.plugins.nvim_tree_config')
+require('jsaez.plugins.cmp_config')
+require('jsaez.plugins.treesitter_config')
+require('jsaez.plugins.lsp_config')
+require('jsaez.plugins.lualine_config')

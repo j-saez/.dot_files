@@ -1,0 +1,2 @@
+# Avoid tmux tmp as it is another repository
+tmux/plugins/tpm
