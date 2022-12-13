@@ -1,3 +1,3 @@
 # Config files
 
-This repo contains the configuration files for nvim and tmux at the moment.
+This repo contains Javi's the configuration files for nvim and tmux.
