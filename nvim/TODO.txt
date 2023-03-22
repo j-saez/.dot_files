@@ -1,5 +1,3 @@
-
 TODOs:
-    
-    >> Change nvim-tree for telescope-file-browser
-    >> Activate lualine
+
+    >> Fix the problems with the debugger
