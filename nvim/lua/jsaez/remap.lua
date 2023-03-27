@@ -45,10 +45,5 @@ vim.keymap.set("n","<C-l>", "<C-w>l")
 -- Resize between splits
 vim.keymap.set("n","<C-A-L>", "<cmd> vertical resize -3 <CR>")
 vim.keymap.set("n","<C-A-H>", "<cmd> vertical resize +3 <CR>")
-vim.keymap.set("n","<C-A-J>", "<cmd> resize +3 <CR>")
-vim.keymap.set("n","<c-A-K>", "<cmd> resize -3 <CR>")
-
-vim.keymap.set("n","<c-A-K>", "<cmd> resize -3 <CR>")
-vim.keymap.set("n","<c-A-K>", "<cmd> resize -3 <CR>")
-vim.keymap.set("n","<c-A-K>", "<cmd> resize -3 <CR>")
-vim.keymap.set("n","<c-A-K>", "<cmd> resize -3 <CR>")
+vim.keymap.set("n","<C-A-J>", "<cmd> resize +2 <CR>")
+vim.keymap.set("n","<C-A-K>", "<cmd> resize -3 <CR>")
