@@ -99,7 +99,7 @@ return require('packer').startup(
         use 'jay-babu/mason-nvim-dap.nvim'
         use 'rcarriga/nvim-dap-ui'
         use 'theHamsta/nvim-dap-virtual-text'
-        use 'nvim-telescope/telescope.dap'
+        use 'nvim-telescope/telescope-dap.nvim'
 
 		-- Formaters and linters
 		use 'jose-elias-alvarez/null-ls.nvim'

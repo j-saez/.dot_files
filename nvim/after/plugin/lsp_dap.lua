@@ -2,26 +2,27 @@ require("mason").setup()
 require("mason-lspconfig").setup()
 
 -- LSP 
-    local lsp = require("lsp-zero")
-    lsp.preset("recommended")
-    lsp.ensure_installed({
-        'pyright',
-        'clang',
-    })
+local lsp = require("lsp-zero")
+lsp.preset("recommended")
+lsp.ensure_installed({
+    'pyright',
+    'clang',
+})
 
-    lsp.on_attach(function(client, bufnr)
-      print("pyright attached to this file.")
-      local opts = {buffer = bufnr, remap = false}
-      vim.keymap.set("n", "gD", vim.lsp.buf.declaration, {buffer=0}, opts)
-      vim.keymap.set("n", "gd", vim.lsp.buf.definition, {buffer=0}, opts)
-      vim.keymap.set("n", "gi", vim.lsp.buf.implementation, {buffer=0}, opts)
-      vim.keymap.set("n", "gw", vim.lsp.buf.document_symbol, {buffer=0}, opts)
-      vim.keymap.set("n", "gr", vim.lsp.buf.references, {buffer=0}, opts)
-      vim.keymap.set("n", "gt", vim.lsp.buf.type_definition, {buffer=0}, opts)
-      vim.keymap.set("n", "<leader>af", vim.lsp.buf.code_action, {buffer=0}, opts)
-      vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, {buffer=0}, opts)
-      vim.keymap.set("n", "K", vim.lsp.buf.hover, {buffer=0}, opts)
-    end)
+lsp.on_attach(function(client, bufnr)
+  print("pyright attached to this file.")
+  local opts = {buffer = bufnr, remap = false}
+  vim.keymap.set("n", "gD", function() vim.lsp.buf.declaration() end, opts)
+  vim.keymap.set("n", "gd", function() vim.lsp.buf.definition() end, opts)
+  vim.keymap.set("n", "gi", function() vim.lsp.buf.implementation() end, {buffer=0}, opts)
+  vim.keymap.set("n", "gw", function() vim.lsp.buf.document_symbol() end, {buffer=0}, opts)
+  vim.keymap.set("n", "gr", function() vim.lsp.buf.references() end, {buffer=0}, opts)
+  vim.keymap.set("n", "gt", function() vim.lsp.buf.type_definition() end, {buffer=0}, opts)
+  vim.keymap.set("n", "<leader>af", function() vim.lsp.buf.code_action() end, {buffer=0}, opts)
+  vim.keymap.set("n", "<leader>rn", function() vim.lsp.buf.rename() end, {buffer=0}, opts)
+  vim.keymap.set("n", "K", function() vim.lsp.buf.hover() end, {buffer=0}, opts)
+end)
+lsp.setup()
 
 -- DAP
 local dap = require("dap")
