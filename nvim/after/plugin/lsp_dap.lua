@@ -28,40 +28,13 @@ lsp.setup()
 local dap = require("dap")
 require("dapui").setup()
 require("mason-nvim-dap").setup({
-    automatic_setup = true,
-    ensure_installed = {"python", "cppdbg"}
+    ensure_installed = {"python", "cppdbg"},
+    handlers = {},
 })
-require'mason-nvim-dap'.setup_handlers{
-    function(source_name)
-    -- all sources with no handler get passed here
-
-
-    -- Keep original functionality of `automatic_setup = true`
-    require('mason-nvim-dap.automatic_setup')(source_name)
-    end,
-    python = function(source_name)
-        dap.adapters.python = {
-            type = "executable",
-            command = "/usr/bin/python3",
-            args = {
-                "-m",
-                "debugpy.adapter",
-            },
-        }
-
-        dap.configurations.python = {
-            {
-                type = "python",
-                request = "launch",
-                name = "Launch file",
-                program = "${file}", -- This configuration will launch the current file if used.
-            },
-        }
-    end,
-}
+require("dapui").setup()
 
 vim.keymap.set("n", "<F5>", "<cmd>lua require'dap'.continue()<cr>")
 vim.keymap.set("n", "<F10>", "<cmd>lua require'dap'.step_over()<cr>")
 vim.keymap.set("n", "<F11>", "<cmd>lua require'dap'.step_into()<cr>")
 vim.keymap.set("n", "<F12>", "<cmd>lua require'dap'.step_out()<cr>")
-vim.keymap.set("n", "<leader>tb", "<cmd>lua require'dap'.toggle_breakpoint()<cr>")
+vim.keymap.set("n", "<leader>b", "<cmd>lua require'dap'.toggle_breakpoint()<cr>")
