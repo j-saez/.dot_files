@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Get a list of all active tmux sessions
+sessions=$(tmux list-sessions -F "#S")
+
+# Check if there are no active sessions
+if [ -z "$sessions" ]; then
+  echo "No active tmux sessions found."
+  exit 0
+fi
+
+# Use fzf to select a session to delete
+selected_session=$(echo "$sessions" | fzf --preview "tmux list-windows -t {}")
+
+# Check if a session was selected
+if [ -n "$selected_session" ]; then
+  # Ask for confirmation before deleting the selected session
+  read -p "Are you sure you want to delete the session '$selected_session'? (y/n): " confirm
+  if [ "$confirm" = "y" ]; then
+    tmux kill-session -t "$selected_session"
+    echo "Session '$selected_session' deleted."
+  else
+    echo "Session '$selected_session' was not deleted."
+  fi
+else
+  echo "No session selected."
+fi
