@@ -8,7 +8,6 @@ vim.g.loaded_netrwPlugin = 1
 vim.opt.termguicolors = true
 
 require("nvim-tree").setup {
-    open_on_setup = true,
     view = {
         side = "left",
         width = 30,
