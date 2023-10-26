@@ -6,7 +6,7 @@ require("mason-lspconfig").setup()
     lsp.preset("recommended")
     lsp.ensure_installed({
         'pyright',
-        'clang',
+        'clangd',
     })
 
     lsp.on_attach(function(client, bufnr)

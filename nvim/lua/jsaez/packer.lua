@@ -110,4 +110,6 @@ return require('packer').startup(
 		-- Zen mode
 		use { "folke/zen-mode.nvim" }
 
+        use {"tpope/vim-obsession"}
+
 	end)
