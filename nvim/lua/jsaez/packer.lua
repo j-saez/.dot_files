@@ -53,18 +53,21 @@ return require('packer').startup(
         use 'folke/tokyonight.nvim'
 
 		-- File explorers
-		use { 'nvim-tree/nvim-tree.lua',
-		    requires = {
-			'nvim-tree/nvim-web-devicons', -- optional, for file icons
-		    },
-		    tag = 'nightly' -- optional, updated every week. (see issue #1193)
-		}
+		--use { 'nvim-tree/nvim-tree.lua',
+		    --requires = {
+			--'nvim-tree/nvim-web-devicons', -- optional, for file icons
+		    --},
+		    --tag = 'nightly' -- optional, updated every week. (see issue #1193)
+		--}
 
 		-- Telescope dependencies
 		use 'nvim-lua/plenary.nvim'
 		use 'nvim-telescope/telescope.nvim'
 		use 'sharkdp/fd'
 		use 'BurntSushi/ripgrep'
+
+        -- Oil filebrowser
+        use 'stevearc/oil.nvim'
 
 		-- LSP -- IDE
 		use ('nvim-treesitter/nvim-treesitter', {['do'] = vim.fn[':TSUpdate']})
@@ -109,7 +112,5 @@ return require('packer').startup(
 
 		-- Zen mode
 		use { "folke/zen-mode.nvim" }
-
-        use {"tpope/vim-obsession"}
 
 	end)
