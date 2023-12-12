@@ -66,9 +66,6 @@ return require('packer').startup(
 		use 'sharkdp/fd'
 		use 'BurntSushi/ripgrep'
 
-        -- Oil filebrowser
-        use 'stevearc/oil.nvim'
-
 		-- LSP -- IDE
 		use ('nvim-treesitter/nvim-treesitter', {['do'] = vim.fn[':TSUpdate']})
 		use 'folke/lsp-colors.nvim' -- Automatically creates missing lsp diagnostics highlight grous for color schemes that dont yet suppor the Neovim 0.5 builtin lsp client Debugging (DAP) use 'mfussenegger/nvim-dap' use 'rcarriga/nvim-dap-ui' use 'theHamsta/nvim-dap-virtual-text' use 'nvim-telescope/telescope-dap.nvim'

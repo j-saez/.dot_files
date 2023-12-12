@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Get a list of all windows in the current session with their index and name
+windows=$(tmux list-windows -F "#{window_name}")
+
+# Check if there are no windows
+if [ -z "$windows" ]; then
+    echo "No windows found in the current session."
+    exit 0
+fi
+
+# Use fzf to select a window
+selected_window=$(echo "$windows" | fzf | awk '{print $1}')
+
+# Check if a window was selected
+if [ -n "$selected_window" ]; then
+    # Use tmux switch-client to switch to the selected window by index
+    tmux select-window -t "$selected_window"
+else
+    echo "No window selected."
+fi
