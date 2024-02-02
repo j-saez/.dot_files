@@ -1,1 +1,1 @@
-require("jsaez")
+require('jsaez')

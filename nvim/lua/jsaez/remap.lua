@@ -1,19 +1,16 @@
--- Opening/cloding the file explorer 
-vim.keymap.set("n", "<leader>e", "<cmd>NvimTreeToggle <cr>") 
-
 -- Keeping the curson centered when searching with n, N and joining lines with J
-vim.keymap.set("n", "n", "nzzzv") 
-vim.keymap.set("n", "N", "Nzzzv") 
-vim.keymap.set("n", "J", "mzJ`z") 
+vim.keymap.set("n", "n", "nzzzv")
+vim.keymap.set("n", "N", "Nzzzv")
+vim.keymap.set("n", "J", "mzJ`z")
 
 -- Moving text
-vim.keymap.set("v", "J", "<cmd>m \'>+1<CR>gv=gv") 
-vim.keymap.set("v", "K", "<cmd>m \'<-2<CR>gv=gv") 
-vim.keymap.set("v", "<C-j>", "<esc><cmd>m .+1<CR>==") 
-vim.keymap.set("v", "<C-k>", "<esc><cmd>m .-2<CR>==") 
+vim.keymap.set("v", "J", "<cmd>m \'>+1<CR>gv=gv")
+vim.keymap.set("v", "K", "<cmd>m \'<-2<CR>gv=gv")
+vim.keymap.set("v", "<C-j>", "<esc><cmd>m .+1<CR>==")
+vim.keymap.set("v", "<C-k>", "<esc><cmd>m .-2<CR>==")
 
 -- allows repaste yanked text
-vim.keymap.set("v", "p", [["_dP]]) 
+vim.keymap.set("v", "p", [["_dP]])
 
 -- Run macros over different lines
 vim.api.nvim_set_keymap([[x]], [[@]], [[:<C-u>lua ExecuteMacroOverVisualRange()<CR>]], {noremap=true})
@@ -26,9 +23,9 @@ function ExecuteMacroOverVisualRange()
 end
 
 -- Keep visual selection after indenting
-vim.api.nvim_exec([[ 
-    vmap > >gv 
-    vmap < <gv 
+vim.api.nvim_exec([[
+    vmap > >gv
+    vmap < <gv
 ]], [[true]])
 
 -- Buffers
@@ -47,3 +44,7 @@ vim.keymap.set("n","<C-A-L>", "<cmd> vertical resize -3 <CR>")
 vim.keymap.set("n","<C-A-H>", "<cmd> vertical resize +3 <CR>")
 vim.keymap.set("n","<C-A-J>", "<cmd> resize +2 <CR>")
 vim.keymap.set("n","<C-A-K>", "<cmd> resize -3 <CR>")
+
+-- File explorer
+vim.keymap.set("n", "<leader>e", "<cmd>Explore %:p:h<cr>") -- current file
+vim.keymap.set("n", "<leader>ew", "<cmd>Explore<cr>") -- working directory

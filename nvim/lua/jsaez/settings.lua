@@ -7,8 +7,8 @@
 	--		Global options (vim.o)
 	--		Local to window (vim.wo)
 	--		Local to buffer (vim.bo)
-	
-	vim.wo.foldmethod = "manual"      -- set the code folding method 
+
+	vim.wo.foldmethod = "manual"      -- set the code folding method
 	vim.opt.termguicolors = true      -- set term gui colors (most terminals support this)
 	vim.opt.backup = false            -- creates a backup file
 	vim.opt.clipboard = "unnamedplus" -- allows newovim to acces the system clipboard
@@ -19,7 +19,7 @@
 	vim.opt.ignorecase = true         -- ignore case in search patterns
 	vim.opt.mouse = "a"               -- allow the mouse to be used in neovim
 	vim.opt.pumheight = 10            -- pop up menu height
-	vim.opt.showmode = false          -- we do not nee to see thing like -- INSER -- anymore
+	vim.opt.showmode = true           -- we do not nee to see thing like -- INSER -- anymore
 	vim.opt.smartcase = true          -- smart case
 	vim.opt.smartindent = true        -- make indenting smarte again
 	vim.opt.swapfile = false          -- creates a swapfile
@@ -34,8 +34,8 @@
 	vim.opt.numberwidth = 4           -- the number column width to  2 {default 4}
 	vim.opt.wrap = false              -- display lines as one long line
 	vim.opt.scrolloff = 10            -- is of my fav
-	vim.opt.sidescrolloff = 10 
-	vim.opt.guifont = "monospace:h17" -- the font used in graphical neovim applications 
+	vim.opt.sidescrolloff = 10
+	vim.opt.guifont = "monospace:h17" -- the font used in graphical neovim applications
 	vim.opt.tabstop = 4               -- insert 2 spaces for a tab
 	vim.opt.softtabstop = 4
 	vim.opt.shiftwidth = 4            -- the number of spaces inserted for each indentation
