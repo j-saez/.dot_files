@@ -5,7 +5,6 @@ return {
         "nvim-lua/plenary.nvim",
         "sharkdp/fd",
         "BurntSushi/ripgrep",
-        "nvim-telescope/telescope-dap.nvim",
     },
 
     config = function()
@@ -28,6 +27,5 @@ return {
         vim.keymap.set("n", "<leader>fw", find_word)
         vim.keymap.set("n", "<leader>fW", find_WORD)
 
-        require('telescope').load_extension('dap')
     end
 }

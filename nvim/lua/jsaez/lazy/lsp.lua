@@ -50,6 +50,7 @@ return{
                     require("lspconfig")[server_name].setup({
                         capabilites = capabilites,
                     })
+                    -- print(server_name .. ' set up.')
                 end,
 
                 ["lua_ls"] = function()

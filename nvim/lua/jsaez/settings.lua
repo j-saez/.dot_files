@@ -53,3 +53,7 @@
 
 	-- Leader key
 	vim.g.mapleader= ";"
+
+    -- Automatically configure Python 3 provider for Neovim
+    local python3_path = vim.fn.system('pyenv which python3')
+    vim.g.python3_host_prog = python3_path

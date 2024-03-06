@@ -1,3 +1,8 @@
 # Config files
 
-This repo contains Javi's the configuration files for nvim and tmux.
+This repo contains Javi's the configuration files:
+
+    - Neovim Config.
+    - Tmux config.
+    - Alacritty config.
+    - bash config.

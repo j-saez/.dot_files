@@ -27,13 +27,10 @@ autocmd({"BufWritePre"}, {
     command = [[%s/\s\+$//e]],
 })
 
-local function attach(opts)
-end
-
 autocmd('LspAttach', {
     group = jsaez_group,
     callback = function(e)
-        --print("LSP attached to this file.")
+        -- print("LSP attached to this file.")
 
         local opts = {buffer = e.buf, remap = false}
         vim.keymap.set("n", "gD", function() vim.lsp.buf.declaration() end, opts)
@@ -49,4 +46,3 @@ autocmd('LspAttach', {
 
     end
 })
-
