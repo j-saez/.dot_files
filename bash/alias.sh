@@ -1,6 +1,6 @@
 function fzf_kill() {
     # Use ps and fzf to select a process
-    selected_process=$(ps aux | fzf --reverse --header "Select a process to kill:" | awk '{print $2}')
+    selected_process=$(ps -e -o pid,comm | fzf --reverse --header "Select a process to kill:" | awk '{print $1}')
 
     # Check if a process was selected
     if [ -n "$selected_process" ]; then
@@ -17,7 +17,7 @@ function fzf_kill() {
         echo "No process selected. Exiting."
     fi
 }
-alias fkill='fzf_kill'
 
+alias fkill='fzf_kill'
 alias ll='ls -lF'
 alias lla='ls -alF'
