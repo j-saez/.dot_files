@@ -43,6 +43,7 @@ return{
                 "marksman",
                 "dockerls",
                 "clangd",
+                "prettier",
             },
 
             handlers = {
