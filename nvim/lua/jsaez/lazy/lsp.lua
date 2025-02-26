@@ -43,7 +43,6 @@ return{
                 "marksman",
                 "dockerls",
                 "clangd",
-                "prettier",
             },
 
             handlers = {
@@ -52,6 +51,21 @@ return{
                         capabilites = capabilites,
                     })
                     -- print(server_name .. ' set up.')
+                end,
+
+                ["clangd"] = function()
+                    local lspconfig = require("lspconfig")
+
+                    -- Automatically check if a .clangd file exists in the project directory
+                    -- If it exists, clangd will use it. Otherwise, it will fall back to default settings.
+                    lspconfig.clangd.setup({
+                        capabilities = capabilites,
+                        -- clangd will automatically use the .clangd file if it exists in the project directory
+                        -- We don’t need to specify `init_options` because clangd will respect the `.clangd` file automatically.
+                        init_options = {
+                            useLibraryCompileCommands = true, -- optional setting
+                        },
+                    })
                 end,
 
                 ["lua_ls"] = function()
