@@ -2,12 +2,23 @@
 vim.keymap.set("n", "n", "nzzzv")
 vim.keymap.set("n", "N", "Nzzzv")
 vim.keymap.set("n", "J", "mzJ`z")
+vim.keymap.set("n", "<C-d>", "<C-d>zz")
+vim.keymap.set("n", "<C-u>", "<C-u>zz")
 
--- Moving text
-vim.keymap.set("v", "J", "<cmd>m \'>+1<CR>gv=gv")
-vim.keymap.set("v", "K", "<cmd>m \'<-2<CR>gv=gv")
-vim.keymap.set("v", "<C-j>", "<esc><cmd>m .+1<CR>==")
-vim.keymap.set("v", "<C-k>", "<esc><cmd>m .-2<CR>==")
+-- Move selected lines up or down in visual mode
+vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv", { desc = "Move selection down" })
+vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv", { desc = "Move selection up" })
+
+-- Substitutions
+vim.keymap.set("x", "<leader>s",
+  [[:s/\<<C-r><C-w>\>//g<Left><Left>]],
+  { desc = "Substitute word under cursor in visual selection (case-sensitive, no confirmation)" })
+vim.keymap.set("n", "<leader>s",
+  [[:%s/\<<C-r><C-w>\>//g<Left><Left>]],
+  { desc = "Substitute word under cursor globally (case-sensitive and NO confirmation)" })
+vim.keymap.set("n", "<leader>sc",
+  [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gc<Left><Left><Left>]],
+  { desc = "Substitute word under cursor globally (case-sensitive and with confirmation)" })
 
 -- allows repaste yanked text
 vim.keymap.set("v", "p", [["_dP]])

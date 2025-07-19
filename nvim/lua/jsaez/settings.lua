@@ -8,6 +8,7 @@
 	--		Local to window (vim.wo)
 	--		Local to buffer (vim.bo)
 
+    vim.o.winborder = "rounded"
 	vim.wo.foldmethod = "manual"      -- set the code folding method
 	vim.opt.termguicolors = true      -- set term gui colors (most terminals support this)
 	vim.opt.backup = false            -- creates a backup file
@@ -45,7 +46,7 @@
 	vim.opt.nu=true                   -- get current line number
 	vim.opt.wrap=false
 	vim.opt.colorcolumn="80"
-	vim.opt.signcolumn = "yes"        -- always show the sign column, otherwise it would shift the text each time
+	vim.opt.signcolumn = "auto:3"        -- always show the sign column, otherwise it would shift the text each time
 	vim.opt.incsearch=true
 
 	-- Buffers

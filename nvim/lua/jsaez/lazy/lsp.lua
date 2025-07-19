@@ -22,107 +22,110 @@ return{
         "j-hui/fidget.nvim"
     },
 
-    config = function()
+config = function()
+  -- Load completion and LSP capability helpers
+  local cmp = require("cmp")
+  local cmp_lsp = require("cmp_nvim_lsp")
 
-        local cmp = require("cmp")
-        local cmp_lsp = require("cmp_nvim_lsp")
-        local capabilites = vim.tbl_deep_extend(
-            "force",
-            {},
-            vim.lsp.protocol.make_client_capabilities(),
-            cmp_lsp.default_capabilities()
-        )
+  -- Combine LSP capabilities with nvim-cmp capabilities for autocompletion support
+  local capabilities = vim.tbl_deep_extend(
+      "force",
+      {},
+      vim.lsp.protocol.make_client_capabilities(),
+      cmp_lsp.default_capabilities()
+  )
 
-        require("fidget").setup({})
-        require("mason").setup()
-        require("mason-lspconfig").setup({
-            ensure_installed = {
-                "lua_ls",
-                "pyright",
-                "ltex",
-                "marksman",
-                "dockerls",
-                "clangd",
-            },
+  -- Set up fidget.nvim for LSP progress notifications
+  require("fidget").setup({})
 
-            handlers = {
-                function(server_name)
-                    require("lspconfig")[server_name].setup({
-                        capabilites = capabilites,
-                    })
-                    -- print(server_name .. ' set up.')
-                end,
+  -- Set up Mason (LSP/DAP/linter installer)
+  require("mason").setup()
 
-                ["clangd"] = function()
-                    local lspconfig = require("lspconfig")
+  -- Set up Mason LSPconfig to install and configure LSPs
+  require("mason-lspconfig").setup({
+    ensure_installed = {
+      "lua_ls",
+      "pyright",
+      "ltex",
+      "marksman",
+      "dockerls",
+      "clangd",
+    },
 
-                    -- Automatically check if a .clangd file exists in the project directory
-                    -- If it exists, clangd will use it. Otherwise, it will fall back to default settings.
-                    lspconfig.clangd.setup({
-                        capabilities = capabilites,
-                        -- clangd will automatically use the .clangd file if it exists in the project directory
-                        -- We don’t need to specify `init_options` because clangd will respect the `.clangd` file automatically.
-                        init_options = {
-                            useLibraryCompileCommands = true, -- optional setting
-                        },
-                    })
-                end,
-
-                ["lua_ls"] = function()
-                    local lspconfig = require("lspconfig")
-                    lspconfig.lua_ls.setup({
-                        capabilites = capabilites,
-                        settings = {
-                            Lua = {
-                                diagnostics = { globals = {"vim"} }
-                            }
-                        }
-                    })
-                end
-            }
+    handlers = {
+      -- Default handler for most servers
+      function(server_name)
+        require("lspconfig")[server_name].setup({
+          capabilities = capabilities,
         })
+      end,
 
-        local cmp_select = {behaviour = cmp.SelectBehavior.Select}
-
-        cmp.setup({
-            snippet = {
-                expand = function(args)
-                    require('luasnip').lsp_expand(args.body) -- For `luasnip` users.
-                end
+      -- Custom setup for Lua language server
+      ["lua_ls"] = function()
+        require("lspconfig").lua_ls.setup({
+          capabilities = capabilities,
+          settings = {
+            Lua = {
+              diagnostics = {
+                globals = { "vim" }, -- Prevent "undefined global 'vim'" warning
+              },
             },
-
-            mapping = cmp.mapping.preset.insert({
-                ['<C-n>'] = cmp.mapping.select_next_item(cmp_select),
-                ['<C-m>'] = cmp.mapping.select_prev_item(cmp_select),
-                ['<C-b>'] = cmp.mapping.scroll_docs(-4),
-                ['<C-f>'] = cmp.mapping.scroll_docs(4),
-                ['<CR>'] = cmp.mapping.confirm({select = true}),
-                ['<C-Space>'] = cmp.mapping.complete(),
-            }),
-
-            sources = cmp.config.sources(
-                {
-                    { name = 'nvim_lsp' },
-                    { name = 'luasnip' },  -- For luasnip users.
-                },
-                {
-                    { name = 'buffer' },
-                }
-            ),
-
-            vim.diagnostic.config({
-                update_in_insert = true,
-                float = {
-                    focusable = false,
-                    style = "minimal",
-                    border = "rounded",
-                    source = "always",
-                    header = "",
-                    prefix = "",
-                },
-            }),
+          },
         })
+      end,
+    }
+  })
 
-    end
+  -- Set diagnostic signs and display options (Neovim 0.10+)
+  vim.diagnostic.config({
+    signs = {
+      priority=1,
+      text = {
+        [vim.diagnostic.severity.ERROR] = "",
+        [vim.diagnostic.severity.WARN]  = "",
+        [vim.diagnostic.severity.INFO]  = "",
+        [vim.diagnostic.severity.HINT]  = "",
+      },
+    },
+    update_in_insert = true,
+    float = {
+      focusable = false,
+      style = "minimal",
+      border = "rounded",
+      source = "always",
+      header = "",
+      prefix = "",
+    },
+  })
+
+  -- Completion item selection behavior
+  local cmp_select = { behaviour = cmp.SelectBehavior.Select }
+
+  -- Set up nvim-cmp (completion plugin)
+  cmp.setup({
+    snippet = {
+      expand = function(args)
+        require("luasnip").lsp_expand(args.body)
+      end,
+    },
+    mapping = cmp.mapping.preset.insert({
+      ["<C-n>"] = cmp.mapping.select_next_item(cmp_select),
+      ["<C-m>"] = cmp.mapping.select_prev_item(cmp_select),
+      ["<C-b>"] = cmp.mapping.scroll_docs(-4),
+      ["<C-f>"] = cmp.mapping.scroll_docs(4),
+      ["<CR>"]  = cmp.mapping.confirm({ select = true }),
+      ["<C-Space>"] = cmp.mapping.complete(),
+    }),
+    sources = cmp.config.sources(
+      {
+        { name = "nvim_lsp" },
+        { name = "luasnip" },
+      },
+      {
+        { name = "buffer" },
+      }
+    ),
+  })
+end
 
 }
