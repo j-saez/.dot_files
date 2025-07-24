@@ -3,19 +3,22 @@
 ###############
 
 function fzf_kill() {
-    # Use ps and fzf to select a process
-    selected_process=$(ps -e -o pid,comm | fzf --reverse --header "Select a process to kill:" | awk '{print $1}')
+    # Use ps and fzf with multi-select
+    selected_processes=$(ps -e -o pid,comm --sort=start_time | fzf --multi --reverse --header "Select one or more processes to kill (Tab to select, Enter to confirm):" | awk '{print $1}')
 
-    # Check if a process was selected
-    if [ -n "$selected_process" ]; then
-        # Confirm before killing the selected process
-        read -p "Are you sure you want to kill process $selected_process? (y/n): " confirmation
+    # Check if any process was selected
+    if [ -n "$selected_processes" ]; then
+        echo "Selected PIDs:"
+        echo "$selected_processes"
+
+        read -p "Are you sure you want to kill the selected process(es)? (y/n): " confirmation
         if [ "$confirmation" = "y" ]; then
-            # Kill the selected process with SIGKILL (-9)
-            kill -9 "$selected_process"
-            echo "Process $selected_process killed."
+            # Loop through each selected PID and kill
+            for pid in $selected_processes; do
+                kill -9 "$pid" && echo "Killed process $pid" || echo "Failed to kill process $pid"
+            done
         else
-            echo "Process not killed."
+            echo "No processes were killed."
         fi
     else
         echo "No process selected. Exiting."
@@ -58,7 +61,6 @@ function fzf_docker_container_kill() {
   fi
 }
 
-
 function fzf_docker_image_kill() {
     # Get images with their IDs and tags/digests
     image_info=$(docker images --format "{{.ID}} {{.Repository}}:{{.Tag}}")
@@ -68,12 +70,21 @@ function fzf_docker_image_kill() {
 
     # Check if any images were selected
     if [ -n "$selected_images" ]; then
-        # Confirm before removing the selected images
+        # Confirm deletion
         read -p "Are you sure you want to remove images: $selected_images? (y/n): " confirmation
         if [ "$confirmation" = "y" ]; then
-            # Remove the images
-            docker rmi $selected_images
-            echo "Images removed."
+            # Try to remove without forcing
+            if docker rmi $selected_images; then
+                echo "Images removed successfully."
+            else
+                echo "Some images could not be removed without force."
+                read -p "Do you want to retry removal with force? (y/n): " force_confirm
+                if [ "$force_confirm" = "y" ]; then
+                    docker rmi -f $selected_images && echo "Images forcibly removed."
+                else
+                    echo "Force removal skipped."
+                fi
+            fi
         else
             echo "Images not removed."
         fi
@@ -81,8 +92,6 @@ function fzf_docker_image_kill() {
         echo "No images selected. Exiting."
     fi
 }
-
-
 
 #############
 ## Aliases ##
