@@ -93,6 +93,23 @@ function fzf_docker_image_kill() {
     fi
 }
 
+function copy_path_pwd() {
+    # Get current directory
+    local dir
+    dir=$(pwd)
+
+    # Print the path
+    echo "$dir"
+
+    # Copy to clipboard
+    if command -v xclip &> /dev/null; then
+        echo -n "$dir" | xclip -selection clipboard
+        echo "Path copied to the clipboard"
+    else
+        echo "No clipboard tool found (install xclip on Linux or use WSL)"
+    fi
+}
+
 #############
 ## Aliases ##
 #############
@@ -102,6 +119,8 @@ alias fdrm='fzf_docker_container_kill'
 alias fdrmi='fzf_docker_image_kill'
 alias ll='ls -lF'
 alias lla='ls -alF'
+alias pwdc='copy_path_pwd'
+
 
 # Set alias for kubectl to kubecolor if kubecolor is installed
 if command -v kubecolor &> /dev/null; then
