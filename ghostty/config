@@ -1,0 +1,24 @@
+# Ghostty Configuration
+
+# Use xterm-256color so applications recognize the terminal correctly.
+# The default "xterm-ghostty" is not widely supported yet.
+term = xterm-256color
+
+# Theme
+theme = Dracula+
+
+# Transparency
+background-opacity = 0.90
+background-blur-radius = 20
+
+# Font
+font-size = 13
+
+# Cursor
+cursor-style = block
+shell-integration-features = no-cursor
+
+# Window
+window-decoration = true
+window-padding-x = 8
+window-padding-y = 8
