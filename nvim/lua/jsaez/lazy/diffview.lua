@@ -22,6 +22,7 @@ local function git_compare_commits()
 
     Snacks.picker.pick({
         title = "Compare Commits — all branches  (Tab=select up to 2, Enter=diff)",
+        preview = "git_show",
         finder = function(opts, ctx)
             local root = Snacks.git.get_root() or vim.fn.getcwd()
             return require("snacks.picker.source.proc").proc(
@@ -42,6 +43,7 @@ local function git_compare_commits()
                         item.msg          = parts[5] or ""
                         item.date         = parts[6] or ""
                         item.author       = parts[7] or ""
+                        item.cwd          = root
                         return true
                     end,
                 }),
