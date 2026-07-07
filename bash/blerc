@@ -1,0 +1,2 @@
+# Accept ghost-text suggestion with Ctrl+Space (without executing)
+ble-bind -m auto_complete -f 'C-SP' auto_complete/insert

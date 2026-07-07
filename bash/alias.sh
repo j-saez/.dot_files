@@ -1,4 +1,23 @@
 ###############
+##  History  ##
+###############
+
+# Increase history limits (default 1000/2000 is too small)
+HISTSIZE=100000
+HISTFILESIZE=200000
+
+# After each command: append to file, then reload from file.
+# This keeps all terminals in sync and makes new commands immediately
+# visible in Ctrl+R without waiting for the session to end.
+PROMPT_COMMAND="history -a; history -c; history -r${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
+
+###############
+##    fzf    ##
+###############
+
+export FZF_DEFAULT_OPTS="--bind 'tab:toggle+down,shift-tab:toggle+up'"
+
+###############
 ## Functions ##
 ###############
 
@@ -121,8 +140,24 @@ alias ll='ls -lF'
 alias lla='ls -alF'
 alias pwdc='copy_path_pwd'
 
+function fzf_devi_selector() {
+    # Find all commands starting with 'devi-' in the PATH
+    local selected_command
+    selected_command=$(compgen -c | grep '^devi-' | sort -u | fzf --reverse --height 40% --header "Select a devi- command to execute:" --bind 'ctrl-j:down,ctrl-k:up')
+
+    # Execute the selected command if one was picked
+    if [ -n "$selected_command" ]; then
+        eval "$selected_command"
+    fi
+}
+
+alias devi='fzf_devi_selector'
+alias devi-='fzf_devi_selector'
+
 
 # Set alias for kubectl to kubecolor if kubecolor is installed
 if command -v kubecolor &> /dev/null; then
     alias kubectl=kubecolor
 fi
+
+alias tmux='bash $HOME/.dot_files/bash/tmux_picker.sh'
