@@ -12,7 +12,7 @@
 	vim.wo.foldmethod = "manual"      -- set the code folding method
 	vim.opt.termguicolors = true      -- set term gui colors (most terminals support this)
 	vim.opt.backup = false            -- creates a backup file
-	vim.opt.clipboard = "unnamedplus" -- allows newovim to acces the system clipboard
+    vim.opt.clipboard = "unnamedplus"  -- use system clipboard for all yank/paste
 	vim.opt.cmdheight = 2             -- more space in the neovim command line for displaying messages
 	vim.opt.conceallevel = 0          -- so that `` is visible in markdown files
 	vim.opt.fileencoding = "uft-8"    -- the encoding wirtten to a file
