@@ -55,7 +55,3 @@ vim.keymap.set("n","<C-A-L>", "<cmd> vertical resize -3 <CR>")
 vim.keymap.set("n","<C-A-H>", "<cmd> vertical resize +3 <CR>")
 vim.keymap.set("n","<C-A-J>", "<cmd> resize +2 <CR>")
 vim.keymap.set("n","<C-A-K>", "<cmd> resize -3 <CR>")
-
--- File explorer
-vim.keymap.set("n", "<leader>e", "<cmd>Explore %:p:h<cr>") -- current file
-vim.keymap.set("n", "<leader>ew", "<cmd>Explore<cr>") -- working directory
