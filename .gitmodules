@@ -1,0 +1,6 @@
+[submodule "bash/ble.sh"]
+	path = bash/ble.sh
+	url = https://github.com/akinomyoga/ble.sh
+[submodule "bash/fzf-tab-completion"]
+	path = bash/fzf-tab-completion
+	url = https://github.com/lincheney/fzf-tab-completion

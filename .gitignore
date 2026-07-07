@@ -1,2 +1,5 @@
-# Avoid tmux tmp as it is another repository
-tmux/plugins/tpm
+# TPM downloads plugin code at runtime — managed by tmux.conf, not git
+tmux/plugins/
+
+# Self-referential symlink created by setup_dotfiles.sh (artifact, not a file)
+nvim/nvim
