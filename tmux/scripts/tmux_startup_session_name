@@ -1,0 +1,18 @@
+#!/bin/bash
+
+resurrect_file=""
+if [ -f "$HOME/.tmux/resurrect/last" ]; then
+    resurrect_file="$HOME/.tmux/resurrect/last"
+elif [ -f "${XDG_DATA_HOME:-$HOME/.local/share}/tmux/resurrect/last" ]; then
+    resurrect_file="${XDG_DATA_HOME:-$HOME/.local/share}/tmux/resurrect/last"
+fi
+
+# Only prompt when there's no resurrect file and this is the sole session
+if [ -z "$resurrect_file" ] && [ "$(tmux list-sessions 2>/dev/null | wc -l)" -eq 1 ]; then
+    tmux display-popup -E \
+        -w 40% -h 7 \
+        -b rounded \
+        -S "fg=cyan" \
+        -T " New Session " \
+        'read -p "  Name [main]: " name; tmux rename-session "${name:-main}"'
+fi

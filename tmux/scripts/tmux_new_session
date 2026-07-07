@@ -1,0 +1,16 @@
+#!/bin/bash
+
+name="$1"
+
+if [ -z "$name" ]; then
+    tmux display-message "No session name provided."
+    exit 1
+fi
+
+if tmux has-session -t "$name" 2>/dev/null; then
+    tmux display-message "Session '$name' already exists."
+    exit 1
+fi
+
+tmux new-session -d -s "$name"
+tmux switch-client -t "$name"
