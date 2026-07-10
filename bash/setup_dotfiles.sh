@@ -370,6 +370,7 @@ BASHRC="$HOME/.bash_aliases_local"
 REMOVE_LINES=(
     "[ -f /.dockerenv ] && [ ! -d \"\$HOME/.venv\" ] && python3 -m venv \"\$HOME/.venv\""
     "[ -f /.dockerenv ] && [ -f \"\$HOME/.venv/bin/activate\" ] && source \"\$HOME/.venv/bin/activate\""
+    "case :\$PATH: in *:/usr/local/go/bin:*) ;; *) export PATH=\"\$PATH:/usr/local/go/bin\" ;; esac"
 )
 for line in "${REMOVE_LINES[@]}"; do
     if grep -Fxq "$line" "$BASHRC" 2>/dev/null; then
@@ -380,6 +381,7 @@ done
 
 SOURCE_LINES=(
     "case :\$PATH: in *:\$HOME/.local/bin:*) ;; *) export PATH=\"\$HOME/.local/bin:\$PATH\" ;; esac"
+    "case :\$PATH: in *:/usr/local/go/bin:*) ;; *) export PATH=\"/usr/local/go/bin:\$PATH\" ;; esac"
     "[ -s \"\$HOME/.nvm/nvm.sh\" ] && \\. \"\$HOME/.nvm/nvm.sh\""
     "[ -f /.dockerenv ] && export TERM=xterm-256color"
     "[ -f /.dockerenv ] && [ -f \"\$HOME/.dot_files/bash/container_venv.sh\" ] && source \"\$HOME/.dot_files/bash/container_venv.sh\""

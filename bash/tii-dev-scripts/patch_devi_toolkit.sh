@@ -18,6 +18,8 @@ DOT_FILES_MARKER="dot_files_mount"
 SSH_NEW_MARKER='ssh_mount+='
 PTRACE_MARKER="ptrace_cap"
 DAP_SETUP_MARKER="setup_dap_ptrace"
+GO_INSTALL_MARKER="install_go"
+CLAUDE_INSTALL_MARKER="install_claude"
 
 # ── Guard: skip if indoor_setup isn't present ───────────────────────────────
 
@@ -40,7 +42,13 @@ grep -q "$PTRACE_MARKER" "$TARGET" && PTRACE_PATCHED=true
 DAP_SETUP_PATCHED=false
 grep -q "$DAP_SETUP_MARKER" "$TARGET" && DAP_SETUP_PATCHED=true
 
-if $DOT_FILES_PATCHED && $SSH_PATCHED && $PTRACE_PATCHED && $DAP_SETUP_PATCHED; then
+GO_INSTALL_PATCHED=false
+grep -q "$GO_INSTALL_MARKER" "$TARGET" && GO_INSTALL_PATCHED=true
+
+CLAUDE_INSTALL_PATCHED=false
+grep -q "$CLAUDE_INSTALL_MARKER" "$TARGET" && CLAUDE_INSTALL_PATCHED=true
+
+if $DOT_FILES_PATCHED && $SSH_PATCHED && $PTRACE_PATCHED && $DAP_SETUP_PATCHED && $GO_INSTALL_PATCHED && $CLAUDE_INSTALL_PATCHED; then
     echo "[patch_devi_toolkit] Already patched — nothing to do."
     exit 0
 fi
@@ -131,6 +139,28 @@ fi
 if ! $DAP_SETUP_PATCHED; then
     sed -i '/^    devi-docker-exec \$image_version$/i\    bash "$HOME/.dot_files/bash/tii-dev-scripts/setup_dap_ptrace.sh" "$container_name" 2>\&1 || true' "$TARGET"
     echo "[patch_devi_toolkit] Applied DAP ptrace auto-setup patch."
+fi
+
+# ── Patch 5: install Go automatically after container creation ──────────────
+#
+# Injects a call to install_go.sh inside devi-docker-run, right before
+# devi-docker-exec, so Go is present every time a container is created or
+# restarted.
+
+if ! $GO_INSTALL_PATCHED; then
+    sed -i '/^    devi-docker-exec \$image_version$/i\    bash "$HOME/.dot_files/bash/tii-dev-scripts/install_go.sh" "$container_name" 2>\&1 || true' "$TARGET"
+    echo "[patch_devi_toolkit] Applied Go install patch."
+fi
+
+# ── Patch 6: install Claude Code automatically after container creation ─────
+#
+# Injects a call to install_claude.sh inside devi-docker-run, right before
+# devi-docker-exec, so Claude Code is present every time a container is
+# created or restarted.
+
+if ! $CLAUDE_INSTALL_PATCHED; then
+    sed -i '/^    devi-docker-exec \$image_version$/i\    bash "$HOME/.dot_files/bash/tii-dev-scripts/install_claude.sh" "$container_name" 2>\&1 || true' "$TARGET"
+    echo "[patch_devi_toolkit] Applied Claude Code install patch."
 fi
 
 echo "[patch_devi_toolkit] Done."
