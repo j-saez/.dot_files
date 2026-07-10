@@ -1,0 +1,57 @@
+#!/bin/bash
+
+bold=$(tput bold)
+reset=$(tput sgr0)
+header_color=$(tput setaf 6)  # cyan
+key_color=$(tput setaf 3)    # yellow
+reset_all="$reset"
+
+header() {
+    printf "\n%s%s%s\n" "${bold}${header_color}" "$1" "$reset_all"
+}
+
+key() {
+    printf "  %s%-20s%s%s\n" "$key_color" "$1" "$reset_all" "$2"
+}
+
+printf "%s%sPrefix: Ctrl-b%s\n" "$bold" "$header_color" "$reset_all"
+
+header "Sessions"
+key "prefix + n" "new session (prompts for name)"
+key "prefix + s" "switch session"
+key "prefix + k" "kill session"
+key "prefix + \$" "rename session"
+
+header "Windows"
+key "prefix + w" "switch window (fzf picker)"
+key "prefix + 0-9" "jump to window by number"
+key "prefix + p" "previous window"
+key "prefix + ," "rename window"
+key "Alt-m / Alt-n" "prev / next window (no prefix)"
+key "Alt-, / Alt-." "swap window left / right"
+
+header "Panes"
+key "prefix + v" "split vertical (side by side)"
+key "prefix + a" "split horizontal (stacked)"
+key "Alt-h/j/k/l" "move between panes"
+key "Alt-H/J/K/L" "resize pane"
+
+header "Copy mode (vi keys)"
+key "prefix + [" "enter copy mode"
+key "v" "start selection"
+key "y" "copy selection to clipboard"
+key "Ctrl-p" "paste buffer"
+
+header "Misc"
+key "prefix + g" "open lazygit"
+key "prefix + r" "reload config"
+key "prefix + ?" "this cheatsheet"
+key "q" "close this popup"
+
+header "Save / restore server (tmux-resurrect / continuum)"
+key "prefix + Ctrl-s" "save current sessions/windows/panes"
+key "prefix + Ctrl-r" "restore last save"
+printf "  %-20s%s\n" "" "(continuum also auto-saves periodically)"
+
+echo
+read -n 1 -s -r
