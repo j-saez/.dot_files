@@ -113,13 +113,16 @@ Run `:Lazy` inside Neovim to view/update them.
 | `;e` | Open parent dir as buffer (oil) |
 | `;gC` | Compare commits (Tab to select up to 2, Enter to diff) |
 | `;gF` | Diff current file vs a selected commit |
-| `;op` | List open PRs |
-| `;oo` | View PR for current branch |
-| `;oc` | Checkout a PR branch |
-| `;om` | Merge current PR |
-| `;oi` | List issues |
-| `;or` | Start a code review |
-| `;oR` | Submit the review |
+| `;op` | Pick / switch MR |
+| `;oo` | Open MR review panel |
+| `;os` | MR summary |
+| `;oA` | Approve MR |
+| `;or` | Revoke approval |
+| `;oc` | Create inline comment |
+| `;on` | Create MR note |
+| `;om` | Merge MR |
+| `;ob` | Open MR in browser |
+| `;oP` | Pipeline status |
 
 ---
 
