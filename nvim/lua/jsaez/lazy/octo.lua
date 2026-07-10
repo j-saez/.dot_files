@@ -17,7 +17,8 @@ return {
         { "<leader>oc", function() require("gitlab").create_comment() end,       desc = "MR create comment" },
         { "<leader>on", function() require("gitlab").create_note() end,          desc = "MR create note" },
         { "<leader>om", function() require("gitlab").merge() end,                desc = "MR merge" },
-        { "<leader>ob", function() require("gitlab").open_in_browser() end,      desc = "MR open in browser" },
+        { "<leader>ob", function() require("gitlab").copy_mr_url() end,           desc = "MR copy URL to clipboard" },
         { "<leader>oP", function() require("gitlab").pipeline() end,             desc = "MR pipeline status" },
+        { "<leader>od", function() require("gitlab").toggle_discussions() end,  desc = "MR toggle discussions" },
     },
 }
