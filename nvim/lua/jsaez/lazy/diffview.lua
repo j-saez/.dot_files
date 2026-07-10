@@ -139,7 +139,21 @@ local cheatsheet_lines = {
     "  <ldr>gb    git branches          ",
     "  <ldr>gS    git status picker     ",
     "                                   ",
+    "  Merge Tool                       ",
+    "  ]x / [x    next/prev conflict    ",
+    "  <ldr>co    choose ours           ",
+    "  <ldr>ct    choose theirs         ",
+    "  <ldr>cb    choose base           ",
+    "  <ldr>ca    choose all            ",
+    "  <ldr>cO    ours (whole file)     ",
+    "  <ldr>cT    theirs (whole file)   ",
+    "  <ldr>cB    base (whole file)     ",
+    "  <ldr>cA    all (whole file)      ",
+    "  dx / dX    del conflict / all    ",
+    "  2do / 3do  get ours / theirs     ",
+    "                                   ",
     "  <ldr>g?    toggle this help      ",
+    "  <ldr>m?    merge commands popup  ",
 }
 
 local cheatsheet_width = 37
@@ -188,6 +202,79 @@ local function toggle_cheatsheet()
     vim.wo[cheatsheet_win].winblend = 15
 end
 
+-- Merge conflict legend popup (toggle with <leader>m?).
+-- Centered on screen to distinguish it from the general git cheatsheet.
+local merge_legend_win = nil
+local merge_legend_buf = nil
+
+local merge_legend_lines = {
+    "  Merge Tool                       ",
+    "  (diffview during git merge)      ",
+    "                                   ",
+    "  Navigation                       ",
+    "  ]x / [x   next / prev conflict   ",
+    "                                   ",
+    "  Per-conflict                     ",
+    "  <ldr>co   choose ours            ",
+    "  <ldr>ct   choose theirs          ",
+    "  <ldr>cb   choose base            ",
+    "  <ldr>ca   choose all             ",
+    "                                   ",
+    "  Whole file                       ",
+    "  <ldr>cO   ours                   ",
+    "  <ldr>cT   theirs                 ",
+    "  <ldr>cB   base                   ",
+    "  <ldr>cA   all                    ",
+    "                                   ",
+    "  Misc                             ",
+    "  dx / dX   del / del all          ",
+    "  2do / 3do get ours / theirs      ",
+    "                                   ",
+    "  <ldr>m?   toggle this popup      ",
+}
+
+local merge_legend_width = 37
+
+local function get_merge_legend_buf()
+    if merge_legend_buf and vim.api.nvim_buf_is_valid(merge_legend_buf) then
+        return merge_legend_buf
+    end
+    merge_legend_buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(merge_legend_buf, 0, -1, false, merge_legend_lines)
+    vim.bo[merge_legend_buf].modifiable = false
+    vim.bo[merge_legend_buf].bufhidden = "hide"
+    local ns = vim.api.nvim_create_namespace("MergeLegend")
+    for i, line in ipairs(merge_legend_lines) do
+        if line:match("^  %u") and not line:match("^  [<%)%[]") then
+            vim.api.nvim_buf_add_highlight(merge_legend_buf, ns, "Title", i - 1, 0, -1)
+        end
+    end
+    return merge_legend_buf
+end
+
+local function toggle_merge_legend()
+    if merge_legend_win and vim.api.nvim_win_is_valid(merge_legend_win) then
+        vim.api.nvim_win_close(merge_legend_win, true)
+        merge_legend_win = nil
+        return
+    end
+    local height = #merge_legend_lines
+    merge_legend_win = vim.api.nvim_open_win(get_merge_legend_buf(), false, {
+        relative  = "editor",
+        row       = math.max(0, math.floor((vim.o.lines - height) / 2) - 2),
+        col       = math.max(0, math.floor((vim.o.columns - merge_legend_width) / 2)),
+        width     = merge_legend_width,
+        height    = height,
+        style     = "minimal",
+        border    = "rounded",
+        focusable = false,
+        zindex    = 51,
+        title     = " Merge Help ",
+        title_pos = "center",
+    })
+    vim.wo[merge_legend_win].winblend = 15
+end
+
 return {
     "sindrets/diffview.nvim",
     dependencies = { "nvim-lua/plenary.nvim" },
@@ -199,6 +286,7 @@ return {
         { "<leader>gC", git_compare_commits,               desc = "Compare commits (picker)" },
         { "<leader>gF", git_file_compare,                  desc = "File vs commit (picker)" },
         { "<leader>g?", toggle_cheatsheet,                 desc = "Git keybindings help" },
+        { "<leader>m?", toggle_merge_legend,               desc = "Merge conflict commands" },
     },
     opts = {},
 }
