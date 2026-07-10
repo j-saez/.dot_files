@@ -261,8 +261,8 @@ local function toggle_merge_legend()
     local height = #merge_legend_lines
     merge_legend_win = vim.api.nvim_open_win(get_merge_legend_buf(), false, {
         relative  = "editor",
-        row       = math.max(0, math.floor((vim.o.lines - height) / 2) - 2),
-        col       = math.max(0, math.floor((vim.o.columns - merge_legend_width) / 2)),
+        row       = math.max(0, vim.o.lines - height - 3),
+        col       = math.max(0, vim.o.columns - merge_legend_width - 3),
         width     = merge_legend_width,
         height    = height,
         style     = "minimal",
