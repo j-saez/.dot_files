@@ -316,8 +316,18 @@ BLE_SH_DIR="$DEST_DIR/bash/ble.sh"
 _install_blesh() {
     echo "Installing ble.sh build dependency: gawk..."
     sudo apt install -y gawk
-    echo "Cloning ble.sh..."
-    git clone --recursive https://github.com/akinomyoga/ble.sh "$BLE_SH_DIR"
+    if [ -d "$BLE_SH_DIR" ]; then
+        # Already checked out -- e.g. ~/.dot_files is bind-mounted from the
+        # host into a devcontainer, where it's already cloned there. `git
+        # clone` into a non-empty directory fails, so update in place
+        # instead of cloning over it.
+        echo "ble.sh checkout already present at $BLE_SH_DIR — updating..."
+        git -C "$BLE_SH_DIR" pull --ff-only
+        git -C "$BLE_SH_DIR" submodule update --init --recursive
+    else
+        echo "Cloning ble.sh..."
+        git clone --recursive https://github.com/akinomyoga/ble.sh "$BLE_SH_DIR"
+    fi
     echo "Building and installing ble.sh..."
     make -C "$BLE_SH_DIR" install PREFIX="$HOME/.local"
     echo "ble.sh installed to $HOME/.local/share/blesh/"
