@@ -2,56 +2,42 @@
 
 bold=$(tput bold)
 reset=$(tput sgr0)
-header_color=$(tput setaf 6)  # cyan
-key_color=$(tput setaf 3)    # yellow
-reset_all="$reset"
+cat_color=$(tput setaf 6)  # cyan
+key_color=$(tput setaf 3)  # yellow
 
-header() {
-    printf "\n%s%s%s\n" "${bold}${header_color}" "$1" "$reset_all"
-}
+# category|key|description
+entries=(
+"Session|prefix + n|new session (prompts for name)"
+"Session|prefix + s|switch session"
+"Session|prefix + k|kill session"
+"Session|prefix + \$|rename session"
+"Window|prefix + c|new window"
+"Window|prefix + w|switch window (fzf picker)"
+"Window|prefix + 0-9|jump to window by number"
+"Window|prefix + p|previous window"
+"Window|prefix + ,|rename window"
+"Window|Alt-m / Alt-n|prev / next window (no prefix)"
+"Window|Alt-, / Alt-.|swap window left / right"
+"Pane|prefix + v|split vertical (side by side)"
+"Pane|prefix + a|split horizontal (stacked)"
+"Pane|Alt-h/j/k/l|move between panes"
+"Pane|Alt-H/J/K/L|resize pane"
+"Copy|prefix + [|enter copy mode"
+"Copy|v|start selection (inside copy mode)"
+"Copy|y|copy selection to clipboard"
+"Copy|Ctrl-p|paste buffer"
+"Misc|prefix + g|open lazygit"
+"Misc|prefix + r|reload config"
+"Misc|prefix + ?|this cheatsheet"
+"Save|prefix + Ctrl-s|save sessions/windows/panes (resurrect)"
+"Save|prefix + Ctrl-r|restore last save"
+)
 
-key() {
-    printf "  %s%-20s%s%s\n" "$key_color" "$1" "$reset_all" "$2"
-}
-
-printf "%s%sPrefix: Ctrl-b%s\n" "$bold" "$header_color" "$reset_all"
-
-header "Sessions"
-key "prefix + n" "new session (prompts for name)"
-key "prefix + s" "switch session"
-key "prefix + k" "kill session"
-key "prefix + \$" "rename session"
-
-header "Windows"
-key "prefix + w" "switch window (fzf picker)"
-key "prefix + 0-9" "jump to window by number"
-key "prefix + p" "previous window"
-key "prefix + ," "rename window"
-key "Alt-m / Alt-n" "prev / next window (no prefix)"
-key "Alt-, / Alt-." "swap window left / right"
-
-header "Panes"
-key "prefix + v" "split vertical (side by side)"
-key "prefix + a" "split horizontal (stacked)"
-key "Alt-h/j/k/l" "move between panes"
-key "Alt-H/J/K/L" "resize pane"
-
-header "Copy mode (vi keys)"
-key "prefix + [" "enter copy mode"
-key "v" "start selection"
-key "y" "copy selection to clipboard"
-key "Ctrl-p" "paste buffer"
-
-header "Misc"
-key "prefix + g" "open lazygit"
-key "prefix + r" "reload config"
-key "prefix + ?" "this cheatsheet"
-key "q" "close this popup"
-
-header "Save / restore server (tmux-resurrect / continuum)"
-key "prefix + Ctrl-s" "save current sessions/windows/panes"
-key "prefix + Ctrl-r" "restore last save"
-printf "  %-20s%s\n" "" "(continuum also auto-saves periodically)"
-
-echo
-read -n 1 -s -r
+printf '%s\n' "${entries[@]}" | awk -F'|' -v c="$cat_color" -v k="$key_color" -v b="$bold" -v r="$reset" '{
+    printf "%s%-8s%s  %s%-20s%s  %s\n", c, $1, r, b k, $2, r, $3
+}' | fzf --ansi \
+         --prompt="tmux cheatsheet> " \
+         --header="Prefix: Ctrl-b   (type to filter, Esc/Enter to close)" \
+         --no-info \
+         --layout=reverse \
+         --bind "enter:accept,esc:accept"
