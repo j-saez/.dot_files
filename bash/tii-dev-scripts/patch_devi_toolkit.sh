@@ -19,7 +19,8 @@ SSH_NEW_MARKER='ssh_mount+='
 PTRACE_MARKER="ptrace_cap"
 DAP_SETUP_MARKER="setup_dap_ptrace"
 GO_INSTALL_MARKER="install_go"
-CLAUDE_INSTALL_MARKER="install_claude"
+CLAUDE_INSTALL_MARKER="install_claude.sh"
+CLAUDE_MOUNT_MARKER="claude_mount"
 
 # ── Guard: skip if indoor_setup isn't present ───────────────────────────────
 
@@ -48,7 +49,10 @@ grep -q "$GO_INSTALL_MARKER" "$TARGET" && GO_INSTALL_PATCHED=true
 CLAUDE_INSTALL_PATCHED=false
 grep -q "$CLAUDE_INSTALL_MARKER" "$TARGET" && CLAUDE_INSTALL_PATCHED=true
 
-if $DOT_FILES_PATCHED && $SSH_PATCHED && $PTRACE_PATCHED && $DAP_SETUP_PATCHED && $GO_INSTALL_PATCHED && $CLAUDE_INSTALL_PATCHED; then
+CLAUDE_MOUNT_PATCHED=false
+grep -q "$CLAUDE_MOUNT_MARKER" "$TARGET" && CLAUDE_MOUNT_PATCHED=true
+
+if $DOT_FILES_PATCHED && $SSH_PATCHED && $PTRACE_PATCHED && $DAP_SETUP_PATCHED && $GO_INSTALL_PATCHED && $CLAUDE_MOUNT_PATCHED; then
     echo "[patch_devi_toolkit] Already patched — nothing to do."
     exit 0
 fi
@@ -152,15 +156,25 @@ if ! $GO_INSTALL_PATCHED; then
     echo "[patch_devi_toolkit] Applied Go install patch."
 fi
 
-# ── Patch 6: install Claude Code automatically after container creation ─────
+# ── Patch 6: mount Claude Code from the host instead of installing per-container
 #
-# Injects a call to install_claude.sh inside devi-docker-run, right before
-# devi-docker-exec, so Claude Code is present every time a container is
-# created or restarted.
+# ~/.local/bin/claude is an absolute symlink into ~/.local/share/claude (the
+# native installer's version store), so both are bind-mounted: the version
+# store at the *same* absolute host path (required for the symlink target to
+# resolve inside the container, regardless of the container user's $HOME),
+# and the symlink itself onto the container's PATH. This gives every
+# container the host's current Claude Code build with no install/update step
+# and no per-container drift. Supersedes the old curl-based install_claude.sh
+# call, which is removed if present.
 
-if ! $CLAUDE_INSTALL_PATCHED; then
-    sed -i '/^    devi-docker-exec \$image_version$/i\    bash "$HOME/.dot_files/bash/tii-dev-scripts/install_claude.sh" "$container_name" 2>\&1 || true' "$TARGET"
-    echo "[patch_devi_toolkit] Applied Claude Code install patch."
+if ! $CLAUDE_MOUNT_PATCHED; then
+    if $CLAUDE_INSTALL_PATCHED; then
+        sed -i '/tii-dev-scripts\/install_claude\.sh/d' "$TARGET"
+        echo "[patch_devi_toolkit] Removed old curl-based Claude Code install call."
+    fi
+    sed -i '/^  local keyring_mount=""$/i\  local claude_mount=""\n  if [ -d "$HOME/.local/share/claude" ]; then\n    claude_mount+=" --volume $HOME/.local/share/claude:$HOME/.local/share/claude:ro"\n  fi\n  if [ -L "$HOME/.local/bin/claude" ]; then\n    claude_mount+=" --volume $HOME/.local/bin/claude:/home/developer/.local/bin/claude:ro"\n  fi' "$TARGET"
+    sed -i '/^    \$keyring_mount \\$/a\    $claude_mount \\' "$TARGET"
+    echo "[patch_devi_toolkit] Applied Claude Code bind-mount patch."
 fi
 
 echo "[patch_devi_toolkit] Done."
