@@ -5,7 +5,7 @@ Personal configuration files for Neovim, Tmux, Bash, and Ghostty.
 - **Neovim** — lazy.nvim plugin manager, LSP (clangd/pyright/lua_ls), DAP (cppdbg/codelldb), snacks.nvim pickers, diffview, gitsigns, treesitter, and more
 - **Tmux** — tmux2k statusbar, popup-based session management, tmux-resurrect/continuum
 - **Bash** — ble.sh line editor, fzf-tab-completion, history sync, ROS2 completion, container venv setup
-- **Ghostty** — GPU-accelerated terminal emulator config
+- **Ghostty** — GPU-accelerated terminal emulator config, new windows open maximized
 
 ---
 
@@ -35,6 +35,7 @@ bash ~/.dot_files/bash/setup_dotfiles.sh
 The script will automatically:
 
 - Create symlinks for Neovim (`~/.config/nvim`), Tmux (`~/.config/tmux`), Ghostty (`~/.config/ghostty`), and ble.sh (`~/.config/blesh/init.sh`)
+- Install the maximized Ghostty launcher (`~/.local/bin/ghostty-maximized`) and point the app launcher and GNOME's Ctrl+Alt+T shortcut at it
 - Install **Neovim** (latest stable, to `~/.local/bin`)
 - Install **Node.js** via nvm (required by pyright and other LSP servers)
 - Install npm globals: `prettier`, `tree-sitter-cli`
@@ -58,6 +59,20 @@ source ~/.bash_aliases_local
 ```
 
 Or open a new terminal — everything will be sourced automatically.
+
+---
+
+## Ghostty: maximized on launch
+
+Ghostty's `maximize = true` config option is silently ignored at startup on
+Linux/GTK ([ghostty-org/ghostty#11252](https://github.com/ghostty-org/ghostty/issues/11252)),
+so `ghostty/ghostty-maximized` wraps the real binary and maximizes the window
+externally via `wmctrl` once it's mapped. The setup script points both the
+app launcher (`ghostty/ghostty.desktop`, installed to
+`~/.local/share/applications`) and GNOME's built-in Ctrl+Alt+T shortcut
+(`org.gnome.desktop.default-applications.terminal`) at this wrapper instead
+of the raw `ghostty` binary, since Ctrl+Alt+T bypasses the `.desktop` file
+entirely.
 
 ---
 
