@@ -458,8 +458,8 @@ SOURCE_LINES=(
     "[ -f /.dockerenv ] && export TERM=xterm-256color"
     "[ -f /.dockerenv ] && [ -f \"\$HOME/.dot_files/bash/container_venv.sh\" ] && source \"\$HOME/.dot_files/bash/container_venv.sh\""
     "source \$HOME/.dot_files/bash/alias.sh"
-    "source \$HOME/.dot_files/bash/bindings.sh"
     "source \$HOME/.dot_files/bash/ros2_completion.sh"
+    "source \$HOME/.dot_files/bash/bindings.sh"
     "[ -f /.dockerenv ] && [ -d \"\$HOME/.dot_files\" ] && [ ! -L \"\$HOME/.config/nvim\" ] && bash \"\$HOME/.dot_files/bash/setup_dotfiles.sh\""
 )
 
