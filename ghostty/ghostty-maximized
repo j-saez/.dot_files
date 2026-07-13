@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Launches Ghostty and maximizes the window it creates.
+#
+# Ghostty's `maximize = true` config option is silently ignored at startup
+# on Linux/GTK: https://github.com/ghostty-org/ghostty/issues/11252
+# (the maximize request races the window being mapped by the WM). This
+# wraps the real binary and maximizes the new window from the outside
+# once the window manager has actually created it.
+
+set -u
+
+GHOSTTY_BIN="/usr/bin/ghostty"
+
+before=$(wmctrl -lx | awk '{print $1}')
+
+"$GHOSTTY_BIN" --gtk-single-instance=true "$@" &
+
+for _ in $(seq 1 80); do
+    sleep 0.05
+    now=$(wmctrl -lx | grep -i ghostty | awk '{print $1}')
+    new=$(comm -13 <(sort <<<"$before") <(sort <<<"$now"))
+    if [ -n "$new" ]; then
+        for wid in $new; do
+            wmctrl -i -r "$wid" -b add,maximized_vert,maximized_horz
+        done
+        break
+    fi
+done

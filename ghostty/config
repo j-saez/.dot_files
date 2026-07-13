@@ -22,3 +22,4 @@ shell-integration-features = no-cursor
 window-decoration = true
 window-padding-x = 8
 window-padding-y = 8
+maximize = true

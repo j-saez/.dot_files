@@ -62,6 +62,24 @@ if [ "$IN_CONTAINER" = false ]; then
     fi
     ln -s "$DEST_DIR/ghostty" "$GHOSTTY_TARGET"
     echo "Linked $GHOSTTY_TARGET -> $DEST_DIR/ghostty"
+
+    # Ghostty's `maximize = true` config is ignored at startup on Linux/GTK
+    # (https://github.com/ghostty-org/ghostty/issues/11252), so new windows
+    # are maximized externally via a wrapper script + a launcher override.
+    mkdir -p "$HOME/.local/bin" "$HOME/.local/share/applications"
+    chmod +x "$DEST_DIR/ghostty/ghostty-maximized"
+    ln -sf "$DEST_DIR/ghostty/ghostty-maximized" "$HOME/.local/bin/ghostty-maximized"
+    sed "s|@GHOSTTY_MAXIMIZED@|$HOME/.local/bin/ghostty-maximized|g" \
+        "$DEST_DIR/ghostty/ghostty.desktop" > "$HOME/.local/share/applications/com.mitchellh.ghostty.desktop"
+    echo "Installed maximized Ghostty launcher -> $HOME/.local/share/applications/com.mitchellh.ghostty.desktop"
+
+    # GNOME's built-in Ctrl+Alt+T "Launch Terminal" shortcut bypasses the
+    # .desktop file entirely and execs org.gnome.desktop.default-applications
+    # .terminal directly, so it needs to be pointed at the wrapper too.
+    if command -v gsettings &>/dev/null; then
+        gsettings set org.gnome.desktop.default-applications.terminal exec "$HOME/.local/bin/ghostty-maximized"
+        echo "Pointed GNOME's default terminal (Ctrl+Alt+T) at ghostty-maximized"
+    fi
 fi
 
 # ---------------------------------------------------------------------------
