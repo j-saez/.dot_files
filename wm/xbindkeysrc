@@ -1,0 +1,16 @@
+# Managed by ~/.dot_files (wm/xbindkeysrc) — installed to ~/.xbindkeysrc by
+# setup_dotfiles.sh, which substitutes the @PLACEHOLDER@ paths below. Do not
+# edit ~/.xbindkeysrc directly, edit this file instead.
+#
+# Right Alt (ISO_Level3_Shift / Mod5 on this keyboard layout, distinct from
+# Left Alt / Mod1) + number acts as a minimal window switcher for pinned
+# apps, so Alt-Tab cycling can be avoided for them.
+
+"@RAISE_OR_LAUNCH@ com.mitchellh.ghostty @GHOSTTY_MAXIMIZED@"
+    Mod5 + 1
+
+"@RAISE_OR_LAUNCH@ Google-chrome /usr/bin/google-chrome-stable"
+    Mod5 + 2
+
+"@RAISE_OR_LAUNCH@ Slack /usr/bin/slack"
+    Mod5 + 3

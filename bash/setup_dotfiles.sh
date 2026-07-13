@@ -83,6 +83,50 @@ if [ "$IN_CONTAINER" = false ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# wm — Right Alt+1 / Right Alt+2 raise-or-launch Ghostty / Chrome.
+#
+# GNOME's built-in custom-keybinding accelerator format has no name for Mod5
+# (Right Alt is bound to ISO_Level3_Shift/Mod5 on this keyboard layout,
+# distinct from Left Alt/Mod1), so xbindkeys is used instead to grab the
+# raw modifier directly.
+# ---------------------------------------------------------------------------
+
+if [ "$IN_CONTAINER" = false ]; then
+    if command -v xbindkeys &>/dev/null; then
+        echo "xbindkeys already installed"
+    else
+        echo "xbindkeys not found — installing..."
+        sudo apt install -y xbindkeys
+    fi
+
+    mkdir -p "$HOME/.local/bin" "$HOME/.config/autostart"
+    chmod +x "$DEST_DIR/wm/raise-or-launch.sh"
+    ln -sf "$DEST_DIR/wm/raise-or-launch.sh" "$HOME/.local/bin/raise-or-launch"
+
+    sed \
+        -e "s|@RAISE_OR_LAUNCH@|$HOME/.local/bin/raise-or-launch|g" \
+        -e "s|@GHOSTTY_MAXIMIZED@|$HOME/.local/bin/ghostty-maximized|g" \
+        "$DEST_DIR/wm/xbindkeysrc" > "$HOME/.xbindkeysrc"
+    echo "Installed $HOME/.xbindkeysrc"
+
+    cat > "$HOME/.config/autostart/xbindkeys.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=xbindkeys
+Comment=Custom X11 keybindings (managed by ~/.dot_files/wm)
+Exec=xbindkeys -n
+X-GNOME-Autostart-enabled=true
+EOF
+    echo "Installed $HOME/.config/autostart/xbindkeys.desktop"
+
+    if command -v xbindkeys &>/dev/null && [ -n "${DISPLAY:-}" ]; then
+        killall xbindkeys 2>/dev/null
+        xbindkeys
+        echo "Restarted xbindkeys with the new config"
+    fi
+fi
+
+# ---------------------------------------------------------------------------
 # nvim — install latest stable if not already present
 # ---------------------------------------------------------------------------
 
