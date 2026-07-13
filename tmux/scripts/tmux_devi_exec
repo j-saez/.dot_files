@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+# Exec into the always-on indoor_uav dev container, cd'd to the container-side
+# path matching the current tmux pane. Host ~/indoor_uav is bind-mounted 1:1
+# onto /home/developer/indoor_uav in the container.
+container="indoor_ros2_dev"
+host_path=$(tmux display-message -p '#{pane_current_path}')
+
+case "$host_path" in
+    "$HOME"/indoor_uav*)
+        container_path="/home/developer/indoor_uav${host_path#"$HOME"/indoor_uav}"
+        ;;
+    *)
+        container_path="/home/developer"
+        ;;
+esac
+
+if ! docker ps --format '{{.Names}}' | grep -qx "$container"; then
+    tmux display-message "Container '$container' is not running"
+    exit 1
+fi
+
+exec docker exec -it -w "$container_path" "$container" bash

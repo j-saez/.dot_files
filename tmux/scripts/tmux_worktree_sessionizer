@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+
+# Fuzzy-pick a git worktree under ~/indoor_uav and open/switch to a tmux
+# session scoped to it. Repos are found recursively (colcon packages live
+# under ros_ws/src/<pkg>, not at the top level), and both plain repos and
+# the bare-repo-plus-worktrees layout (.bare/ + sibling worktree dirs) are
+# supported.
+base=~/indoor_uav
+
+common_dirs=$(
+    find "$base" \
+        \( -name build -o -name install -o -name log -o -name node_modules -o -name third_party -o -name thirdparty \) -prune \
+        -o \( -name .bare -o -name .git \) -print -prune 2>/dev/null |
+    while IFS= read -r marker; do
+        git -C "$(dirname "$marker")" rev-parse --path-format=absolute --git-common-dir 2>/dev/null
+    done | grep -v '/\.git/modules/' | sort -u
+)
+
+if [[ -z $common_dirs ]]; then
+    tmux display-message "No git repos found under $base"
+    exit 0
+fi
+
+entries=$(
+    while IFS= read -r common; do
+        repo_root=$(dirname "$common")
+        repo_name=$(basename "$repo_root")
+        git -C "$repo_root" worktree list --porcelain 2>/dev/null | awk -v repo="$repo_name" '
+            /^worktree / { path = substr($0, 10) }
+            /^branch /   { branch = substr($0, 8); sub("refs/heads/", "", branch); print repo "\t" branch "\t" path }
+            /^detached$/ { print repo "\tdetached\t" path }
+        '
+    done <<< "$common_dirs" | while IFS=$'\t' read -r repo branch path; do
+        # Drop stale worktree registrations (e.g. moved/deleted checkouts,
+        # or ones registered from inside a container under a different home).
+        [[ -d $path ]] && printf '%s\t%s\t%s\n' "$repo" "$branch" "$path"
+    done
+)
+
+if [[ -z $entries ]]; then
+    tmux display-message "No git worktrees found under $base"
+    exit 0
+fi
+
+selected=$(printf '%s\n' "$entries" | fzf --delimiter=$'\t' --with-nth=1,2 \
+    --header="repo    branch" \
+    --preview 'printf "%s\n\n" {3}; ls {3}' --preview-window=down,40%)
+
+if [[ -z $selected ]]; then
+    exit 0
+fi
+
+repo_name=$(cut -f1 <<< "$selected")
+branch=$(cut -f2 <<< "$selected")
+path=$(cut -f3 <<< "$selected")
+
+session_name=$(echo "${repo_name}_${branch}" | tr './ ' '___')
+tmux_running=$(pgrep tmux)
+
+if [[ -z $TMUX ]] && [[ -z $tmux_running ]]; then
+    tmux new-session -s "$session_name" -c "$path"
+    exit 0
+fi
+
+if ! tmux has-session -t="$session_name" 2> /dev/null; then
+    tmux new-session -ds "$session_name" -c "$path"
+fi
+
+tmux switch-client -t "$session_name"

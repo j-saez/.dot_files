@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+# Create a new git worktree for an existing repo (new or existing branch) and
+# open a tmux session in it. Only repos already using the bare-repo-plus-
+# worktrees layout (<repo>/.bare + sibling worktree dirs, e.g. lidar_reloc)
+# are offered -- plain repos need to be migrated to that layout by hand
+# first, since nesting a worktree inside a normal checkout is messy.
+base=~/indoor_uav
+
+repo_root=$(
+    find "$base" \
+        \( -name build -o -name install -o -name log -o -name node_modules -o -name third_party -o -name thirdparty \) -prune \
+        -o -name .bare -print -prune 2>/dev/null |
+    while IFS= read -r bare; do
+        dirname "$bare"
+    done | sort -u | fzf --prompt="repo> "
+)
+
+if [[ -z $repo_root ]]; then
+    exit 0
+fi
+
+read -p "  Branch [new or existing]: " branch
+if [[ -z $branch ]]; then
+    exit 0
+fi
+
+repo_name=$(basename "$repo_root")
+branch_dir=$(echo "$branch" | tr '/ ' '__')
+worktree_dir="$repo_root/$branch_dir"
+
+if [[ -e $worktree_dir ]]; then
+    tmux display-message "Worktree dir already exists: $worktree_dir"
+    exit 1
+fi
+
+if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$branch"; then
+    git -C "$repo_root" worktree add "$worktree_dir" "$branch" || exit 1
+else
+    git -C "$repo_root" worktree add -b "$branch" "$worktree_dir" || exit 1
+fi
+
+# New worktrees start out of the colcon build until you're ready for them --
+# only one worktree per package should ever be un-ignored at a time.
+touch "$worktree_dir/COLCON_IGNORE"
+
+session_name=$(echo "${repo_name}_${branch}" | tr './ ' '___')
+tmux_running=$(pgrep tmux)
+
+if [[ -z $TMUX ]] && [[ -z $tmux_running ]]; then
+    tmux new-session -s "$session_name" -c "$worktree_dir"
+    exit 0
+fi
+
+if ! tmux has-session -t="$session_name" 2> /dev/null; then
+    tmux new-session -ds "$session_name" -c "$worktree_dir"
+fi
+
+tmux switch-client -t "$session_name"
