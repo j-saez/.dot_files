@@ -443,6 +443,10 @@ REMOVE_LINES=(
     "[ -f /.dockerenv ] && [ ! -d \"\$HOME/.venv\" ] && python3 -m venv \"\$HOME/.venv\""
     "[ -f /.dockerenv ] && [ -f \"\$HOME/.venv/bin/activate\" ] && source \"\$HOME/.venv/bin/activate\""
     "case :\$PATH: in *:/usr/local/go/bin:*) ;; *) export PATH=\"\$PATH:/usr/local/go/bin\" ;; esac"
+    # container_venv.sh (auto-created ~/.venv) removed — it broke other
+    # tooling inside the container (system-site-packages venv shadowing
+    # things that expect the system Python).
+    "[ -f /.dockerenv ] && [ -f \"\$HOME/.dot_files/bash/container_venv.sh\" ] && source \"\$HOME/.dot_files/bash/container_venv.sh\""
 )
 for line in "${REMOVE_LINES[@]}"; do
     if grep -Fxq "$line" "$BASHRC" 2>/dev/null; then
@@ -456,7 +460,6 @@ SOURCE_LINES=(
     "case :\$PATH: in *:/usr/local/go/bin:*) ;; *) export PATH=\"/usr/local/go/bin:\$PATH\" ;; esac"
     "[ -s \"\$HOME/.nvm/nvm.sh\" ] && \\. \"\$HOME/.nvm/nvm.sh\""
     "[ -f /.dockerenv ] && export TERM=xterm-256color"
-    "[ -f /.dockerenv ] && [ -f \"\$HOME/.dot_files/bash/container_venv.sh\" ] && source \"\$HOME/.dot_files/bash/container_venv.sh\""
     "source \$HOME/.dot_files/bash/alias.sh"
     "source \$HOME/.dot_files/bash/ros2_completion.sh"
     "source \$HOME/.dot_files/bash/bindings.sh"
