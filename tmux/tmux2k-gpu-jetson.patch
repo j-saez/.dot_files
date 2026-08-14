@@ -1,0 +1,41 @@
+diff --git a/plugins/gpu.sh b/plugins/gpu.sh
+index 54f93fc..a8edda8 100755
+--- a/plugins/gpu.sh
++++ b/plugins/gpu.sh
+@@ -15,8 +15,12 @@ gpu_icon_link_to="$(get_tmux_option '@tmux2k-gpu-icon-link-to' '')"
+ get_platform() {
+     case $(uname -s) in
+     Linux)
+-        gpu=$(lspci -v | grep VGA | head -n 1 | awk '{print $5}')
+-        echo "$gpu"
++        if [ -f /etc/nv_tegra_release ]; then
++            echo "Jetson"
++        else
++            gpu=$(lspci -v | grep VGA | head -n 1 | awk '{print $5}')
++            echo "$gpu"
++        fi
+         ;;
+     Darwin) echo "Apple" ;;
+     CYGWIN* | MINGW32* | MSYS* | MINGW*) ;; # TODO - windows compatibility
+@@ -31,6 +35,21 @@ get_gpu() {
+     NVIDIA)
+         usage=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits | awk '{ sum += $0 } END { printf("%s", sum / NR) }')
+         ;;
++    Jetson)
++        # Tegra GPUs aren't PCI devices, so nvidia-smi/lspci see nothing here.
++        # Read GPU load straight from the kernel's devfreq sysfs node instead
++        # of shelling out to tegrastats, which lives on the L4T host and
++        # isn't guaranteed to be bind-mounted into a dev container. Searched
++        # under /sys/devices (not /sys/class/devfreq) because the /sys/class
++        # symlink was confirmed NOT visible inside a real dev container on
++        # an Orin board, while /sys/devices was. The devfreq driver reports
++        # load as per-mille (0-1000), hence the /10.
++        local load_file
++        load_file=$(find /sys/devices -maxdepth 6 -path '*.gpu/load' 2>/dev/null | head -n 1)
++        [ -z "$load_file" ] && load_file=$(find /sys/devices -maxdepth 6 -path '*/gpu.?/load' 2>/dev/null | head -n 1)
++        [ -n "$load_file" ] &&
++            usage=$(awk '{printf "%.0f", $1 / 10}' "$load_file" 2>/dev/null)
++        ;;
+     Apple)
+         usage=$(ioreg -l 2>/dev/null | grep "PerformanceStatistics" | grep "Device Utilization" | sed -n 's/.*"Device Utilization %"=\([0-9]*\).*/\1/p' | head -1)
+         ;;
