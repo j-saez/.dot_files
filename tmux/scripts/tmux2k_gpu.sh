@@ -5,8 +5,13 @@
 # On Jetson (Tegra) boards the GPU is not a PCI device, so it never shows up
 # via `nvidia-smi` or `lspci` and tmux2k's stock detection falls through to
 # N/A. `/etc/nv_tegra_release` is the standard L4T marker for "this is a
-# Jetson", and `tegrastats` (ships with L4T) is the standard way to sample
-# GR3D (GPU) load without extra dependencies like jetson-stats.
+# Jetson". GPU load is read straight from the kernel's devfreq sysfs node
+# (e.g. /sys/class/devfreq/17000000.gpu/load on Orin) rather than shelling
+# out to `tegrastats`, since `tegrastats` isn't guaranteed to be present
+# inside dev containers (it lives on the L4T host and needs to be explicitly
+# bind-mounted in), while /sys is normally visible from inside a container.
+# NVIDIA's Tegra devfreq driver reports that file as per-mille (0-1000), not
+# a percentage, hence the /10 below. Confirmed against a real Orin board.
 #
 # tmux2k has no config option to override gpu.sh's detection logic, and
 # plugins/tmux2k is TPM-managed (gitignored, not a submodule), so this file
@@ -51,9 +56,11 @@ get_gpu() {
         usage=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits | awk '{ sum += $0 } END { printf("%s", sum / NR) }')
         ;;
     Jetson)
-        # `head -n1` closing the pipe should make tegrastats exit on SIGPIPE,
-        # but `timeout` guarantees it never lingers if that doesn't happen.
-        usage=$(timeout 1 tegrastats --interval 200 2>/dev/null | head -n 1 | grep -oP 'GR3D_FREQ \K[0-9]+(?=%)')
+        local load_file
+        load_file=$(compgen -G '/sys/class/devfreq/*.gpu/load' | head -n 1)
+        [ -z "$load_file" ] && load_file=$(compgen -G '/sys/devices/gpu.0/load' | head -n 1)
+        [ -n "$load_file" ] &&
+            usage=$(awk '{printf "%.0f", $1 / 10}' "$load_file" 2>/dev/null)
         ;;
     Apple)
         usage=$(ioreg -l 2>/dev/null | grep "PerformanceStatistics" | grep "Device Utilization" | sed -n 's/.*"Device Utilization %"=\([0-9]*\).*/\1/p' | head -1)
