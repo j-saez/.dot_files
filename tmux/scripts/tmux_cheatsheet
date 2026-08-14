@@ -26,7 +26,6 @@ entries=(
 "Copy|v|start selection (inside copy mode)"
 "Copy|y|copy selection to clipboard"
 "Copy|Ctrl-p|paste buffer"
-"Misc|prefix + g|open lazygit"
 "Misc|prefix + r|reload config"
 "Misc|prefix + ?|this cheatsheet"
 "Save|prefix + Ctrl-s|save sessions/windows/panes (resurrect)"

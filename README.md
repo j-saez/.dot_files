@@ -152,5 +152,3 @@ Plugins are managed by [TPM](https://github.com/tmux-plugins/tpm) and installed 
 | `prefix + k` | Kill session(s) — popup with multi-select |
 | `prefix + s` | Switch session — popup picker |
 | `prefix + n` | New named session — popup |
-| `prefix + f` | Sessionizer (project picker) |
-| `prefix + g` | Open lazygit |
