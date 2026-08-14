@@ -6,12 +6,14 @@
 # via `nvidia-smi` or `lspci` and tmux2k's stock detection falls through to
 # N/A. `/etc/nv_tegra_release` is the standard L4T marker for "this is a
 # Jetson". GPU load is read straight from the kernel's devfreq sysfs node
-# (e.g. /sys/class/devfreq/17000000.gpu/load on Orin) rather than shelling
-# out to `tegrastats`, since `tegrastats` isn't guaranteed to be present
-# inside dev containers (it lives on the L4T host and needs to be explicitly
-# bind-mounted in), while /sys is normally visible from inside a container.
-# NVIDIA's Tegra devfreq driver reports that file as per-mille (0-1000), not
-# a percentage, hence the /10 below. Confirmed against a real Orin board.
+# (e.g. /sys/devices/platform/bus@0/17000000.gpu/load on Orin) rather than
+# shelling out to `tegrastats`, since `tegrastats` isn't guaranteed to be
+# present inside dev containers (it lives on the L4T host and needs an
+# explicit bind-mount). Searched via `find /sys/devices` rather than a
+# `/sys/class/devfreq/*.gpu` glob because that symlink path was confirmed
+# NOT visible inside a real dev container on an Orin board, while the
+# underlying /sys/devices tree was. NVIDIA's Tegra devfreq driver reports
+# that file as per-mille (0-1000), not a percentage, hence the /10 below.
 #
 # tmux2k has no config option to override gpu.sh's detection logic, and
 # plugins/tmux2k is TPM-managed (gitignored, not a submodule), so this file
@@ -57,8 +59,8 @@ get_gpu() {
         ;;
     Jetson)
         local load_file
-        load_file=$(compgen -G '/sys/class/devfreq/*.gpu/load' | head -n 1)
-        [ -z "$load_file" ] && load_file=$(compgen -G '/sys/devices/gpu.0/load' | head -n 1)
+        load_file=$(find /sys/devices -maxdepth 6 -path '*.gpu/load' 2>/dev/null | head -n 1)
+        [ -z "$load_file" ] && load_file=$(find /sys/devices -maxdepth 6 -path '*/gpu.?/load' 2>/dev/null | head -n 1)
         [ -n "$load_file" ] &&
             usage=$(awk '{printf "%.0f", $1 / 10}' "$load_file" 2>/dev/null)
         ;;
