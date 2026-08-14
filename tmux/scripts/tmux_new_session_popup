@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# --rename renames the current (already-running) session instead of
+# creating a new one -- used by tmux_startup_session_name on first-ever
+# launch, when tmux has auto-created a session but it has no name yet.
+if [ "$1" = "--rename" ]; then
+    read -p "  Name [main]: " name
+    tmux rename-session "${name:-main}"
+    exit 0
+fi
+
 read -p "  Session name: " name
 
 if [ -z "$name" ]; then

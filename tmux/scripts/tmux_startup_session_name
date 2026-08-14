@@ -14,5 +14,5 @@ if [ -z "$resurrect_file" ] && [ "$(tmux list-sessions 2>/dev/null | wc -l)" -eq
         -b rounded \
         -S "fg=cyan" \
         -T " New Session " \
-        'read -p "  Name [main]: " name; tmux rename-session "${name:-main}"'
+        "~/.config/tmux/scripts/tmux_new_session_popup --rename"
 fi
