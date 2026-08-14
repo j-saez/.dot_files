@@ -14,7 +14,7 @@
 # call to this script in tmux.conf.
 
 current_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-tmux2k_dir="$HOME/.config/tmux/plugins/tmux2k"
+tmux2k_dir="$current_dir/../plugins/tmux2k"
 gpu_plugin="$tmux2k_dir/plugins/gpu.sh"
 
 [ -f "$gpu_plugin" ] || exit 0

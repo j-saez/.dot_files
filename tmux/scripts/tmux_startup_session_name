@@ -1,5 +1,7 @@
 #!/bin/bash
 
+current_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 resurrect_file=""
 if [ -f "$HOME/.tmux/resurrect/last" ]; then
     resurrect_file="$HOME/.tmux/resurrect/last"
@@ -14,5 +16,5 @@ if [ -z "$resurrect_file" ] && [ "$(tmux list-sessions 2>/dev/null | wc -l)" -eq
         -b rounded \
         -S "fg=cyan" \
         -T " New Session " \
-        "~/.config/tmux/scripts/tmux_new_session_popup --rename"
+        "$current_dir/tmux_new_session_popup --rename"
 fi

@@ -458,6 +458,7 @@ done
 SOURCE_LINES=(
     "case :\$PATH: in *:\$HOME/.local/bin:*) ;; *) export PATH=\"\$HOME/.local/bin:\$PATH\" ;; esac"
     "case :\$PATH: in *:/usr/local/go/bin:*) ;; *) export PATH=\"/usr/local/go/bin:\$PATH\" ;; esac"
+    "export TMUX_CONF_DIR=\"\$HOME/.dot_files/tmux\""
     "[ -s \"\$HOME/.nvm/nvm.sh\" ] && \\. \"\$HOME/.nvm/nvm.sh\""
     "[ -f /.dockerenv ] && export TERM=xterm-256color"
     "source \$HOME/.dot_files/bash/alias.sh"
