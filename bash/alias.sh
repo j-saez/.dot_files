@@ -22,8 +22,25 @@ export FZF_DEFAULT_OPTS="--bind 'tab:toggle+down,shift-tab:toggle+up'"
 ###############
 
 function fzf_kill() {
+    # Sort by %MEM (default / --ram) or %CPU (--cpu), highest first
+    local sort_field sort_label
+    case "$1" in
+        --cpu)
+            sort_field="-%cpu"
+            sort_label="CPU%"
+            ;;
+        --ram|"")
+            sort_field="-%mem"
+            sort_label="MEM%"
+            ;;
+        *)
+            echo "Usage: fkill [--ram|--cpu]"
+            return 1
+            ;;
+    esac
+
     # Use ps and fzf with multi-select
-    selected_processes=$(ps -e -o pid,comm --sort=start_time | fzf --multi --reverse --header "Select one or more processes to kill (Tab to select, Enter to confirm):" | awk '{print $1}')
+    selected_processes=$(ps -e -o pid,%cpu,%mem,args --sort="$sort_field" | fzf --multi --reverse --header "Select one or more processes to kill (sorted by $sort_label, Tab to select, Enter to confirm):" | awk '{print $1}')
 
     # Check if any process was selected
     if [ -n "$selected_processes" ]; then
@@ -120,12 +137,23 @@ function copy_path_pwd() {
     # Print the path
     echo "$dir"
 
+    # Replace the current username with a literal, unexpanded $USER
+    # so the copied path stays valid across machines/containers where
+    # the same path exists under a different user (e.g. host vs docker).
+    local dir_copy="${dir//$USER/\$USER}"
+
+    # Auto-install xclip if it's missing
+    if ! command -v xclip &> /dev/null; then
+        echo "xclip not found, installing..."
+        sudo apt-get update && sudo apt-get install -y xclip
+    fi
+
     # Copy to clipboard
     if command -v xclip &> /dev/null; then
-        echo -n "$dir" | xclip -selection clipboard
-        echo "Path copied to the clipboard"
+        echo -n "$dir_copy" | xclip -selection clipboard
+        echo "Copied to clipboard: $dir_copy"
     else
-        echo "No clipboard tool found (install xclip on Linux or use WSL)"
+        echo "Failed to install xclip, cannot copy to clipboard"
     fi
 }
 
