@@ -6,18 +6,33 @@
 [[ -f /usr/share/bash-completion/bash_completion ]] && \
     source /usr/share/bash-completion/bash_completion
 
+# Vim-style paging shared by every fzf popup below: ctrl-j/ctrl-k already move
+# down/up by default in fzf, ctrl-h/ctrl-l have no built-in meaning in a flat
+# list so we bind them to half-page paging instead.
+_fzf_vim_nav_bind='ctrl-h:half-page-up,ctrl-l:half-page-down'
+
 # ---------------------------------------------------------------------------
 # History search — Ctrl+R via fzf
 # ---------------------------------------------------------------------------
 
 command_history_search() {
-    local selected_command
-    selected_command=$(history | tac | fzf --reverse --ansi --no-sort | sed 's/^[[:space:]]*[0-9]*[[:space:]]*//')  || return
+    local raw
+    raw=$(history | tac \
+        | fzf --multi --reverse --ansi --no-sort --bind="${_fzf_vim_nav_bind}" \
+        | sed 's/^[[:space:]]*[0-9]*[[:space:]]*//') || return
+    [[ -z $raw ]] && return
 
-    if [[ -n $selected_command ]]; then
-        READLINE_LINE=$selected_command
-        READLINE_POINT=${#selected_command}
-    fi
+    # Multiple picks (via tab) don't form a valid line on their own, so chain
+    # them with && instead of splicing the raw command lines together.
+    local -a commands
+    mapfile -t commands <<< "$raw"
+
+    local selected_command
+    printf -v selected_command '%s && ' "${commands[@]}"
+    selected_command="${selected_command% && }"
+
+    READLINE_LINE=$selected_command
+    READLINE_POINT=${#selected_command}
 }
 
 bind -x '"\C-r": command_history_search'
@@ -25,6 +40,12 @@ bind -x '"\C-r": command_history_search'
 # ---------------------------------------------------------------------------
 # Tab completion — fzf-tab-completion by lincheney
 # ---------------------------------------------------------------------------
+# NOTE: fzf-bash-completion.sh carries a local patch (see
+# bash/fzf-tab-completion.local.patch) that forces --no-multi when completing
+# the command word itself, so only file/dir/subcommand arguments are
+# multi-selectable. Reapply that patch after `git submodule update`.
+
+export FZF_COMPLETION_OPTS="--multi --bind=${_fzf_vim_nav_bind}"
 
 FZF_TAB_COMPLETION="$HOME/.dot_files/bash/fzf-tab-completion/bash/fzf-bash-completion.sh"
 if [[ -f "$FZF_TAB_COMPLETION" ]]; then
