@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
+set -o pipefail
 
 REPO_URL="https://github.com/j-saez/.dot_files.git"
 DEST_DIR="$HOME/.dot_files"
@@ -151,7 +152,7 @@ _install_nvim() {
 
     echo "Downloading nvim ($arch) from GitHub releases..."
     # Avoid set-e aborting before we can clean up tmp_dir on failure.
-    if curl -fL "$url" -o "$tmp_dir/nvim.tar.gz"; then
+    if curl -fL --retry 3 --retry-delay 2 --retry-connrefused "$url" -o "$tmp_dir/nvim.tar.gz"; then
         # Install to ~/.local so no sudo is required; ~/.local/bin is on PATH
         # via ~/.bash_aliases_local (and via the team bashrc on the host).
         mkdir -p "$HOME/.local"
@@ -181,7 +182,7 @@ NVM_DIR="$HOME/.nvm"
 
 _install_node() {
     echo "Installing nvm..."
-    curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+    curl -fsSL --retry 3 --retry-delay 2 --retry-connrefused https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
     export NVM_DIR="$HOME/.nvm"
     # shellcheck source=/dev/null
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
@@ -251,7 +252,7 @@ _install_stylua() {
     tmp_dir=$(mktemp -d)
 
     echo "Downloading stylua ($arch)..."
-    if curl -fL "$url" -o "$tmp_dir/stylua.zip"; then
+    if curl -fL --retry 3 --retry-delay 2 --retry-connrefused "$url" -o "$tmp_dir/stylua.zip"; then
         python3 -c "import zipfile; zipfile.ZipFile('$tmp_dir/stylua.zip').extractall('$tmp_dir')"
         mkdir -p "$HOME/.local/bin"
         mv "$tmp_dir/stylua" "$HOME/.local/bin/stylua"
@@ -371,13 +372,13 @@ _install_ghostty() {
     echo "Installing Zig $zig_version..."
     local zig_tarball="zig-linux-${arch}-${zig_version}.tar.xz"
     local zig_url="https://ziglang.org/download/${zig_version}/${zig_tarball}"
-    curl -fL "$zig_url" -o "$tmp_dir/$zig_tarball"
+    curl -fL --retry 3 --retry-delay 2 --retry-connrefused "$zig_url" -o "$tmp_dir/$zig_tarball"
     tar -xf "$tmp_dir/$zig_tarball" -C "$tmp_dir"
     local zig_bin="$tmp_dir/zig-linux-${arch}-${zig_version}/zig"
 
     echo "Downloading ghostty $version source tarball..."
     local src_url="https://release.files.ghostty.org/${version}/ghostty-${version}.tar.gz"
-    curl -fL "$src_url" -o "$tmp_dir/ghostty.tar.gz"
+    curl -fL --retry 3 --retry-delay 2 --retry-connrefused "$src_url" -o "$tmp_dir/ghostty.tar.gz"
     tar -xf "$tmp_dir/ghostty.tar.gz" -C "$tmp_dir"
 
     echo "Building ghostty (this will take a few minutes)..."
