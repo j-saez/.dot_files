@@ -457,10 +457,19 @@ REMOVE_LINES=(
     # tooling inside the container (system-site-packages venv shadowing
     # things that expect the system Python).
     "[ -f /.dockerenv ] && [ -f \"\$HOME/.dot_files/bash/container_venv.sh\" ] && source \"\$HOME/.dot_files/bash/container_venv.sh\""
+    # devi-activate isn't defined yet at this point in ~/.bashrc (devi_toolkit.bashrc
+    # is sourced later), so the direct call was always a silent no-op — superseded by
+    # the PROMPT_COMMAND-deferred call in devi_activate.sh.
+    "[ -f /.dockerenv ] && command -v devi-activate &>/dev/null && devi-activate"
 )
 for line in "${REMOVE_LINES[@]}"; do
     if grep -Fxq "$line" "$BASHRC" 2>/dev/null; then
-        grep -Fxv "$line" "$BASHRC" > "${BASHRC}.tmp" && mv "${BASHRC}.tmp" "$BASHRC"
+        # $BASHRC may be bind-mounted into the container as an individual
+        # file (see bash_mount in devi_toolkit.bashrc), in which case `mv`
+        # over it fails with "Device or resource busy" -- rename(2) can't
+        # replace an active mount point. Write into the existing inode
+        # instead of replacing it.
+        grep -Fxv "$line" "$BASHRC" > "${BASHRC}.tmp" && cat "${BASHRC}.tmp" > "$BASHRC" && rm -f "${BASHRC}.tmp"
         echo "Removed from $BASHRC: $line"
     fi
 done
@@ -471,6 +480,7 @@ SOURCE_LINES=(
     "export TMUX_CONF_DIR=\"\$HOME/.dot_files/tmux\""
     "[ -s \"\$HOME/.nvm/nvm.sh\" ] && \\. \"\$HOME/.nvm/nvm.sh\""
     "[ -f /.dockerenv ] && export TERM=xterm-256color"
+    "[ -f /.dockerenv ] && [ -f \"\$HOME/.dot_files/bash/devi_activate.sh\" ] && source \"\$HOME/.dot_files/bash/devi_activate.sh\""
     "source \$HOME/.dot_files/bash/alias.sh"
     "source \$HOME/.dot_files/bash/ros2_completion.sh"
     "source \$HOME/.dot_files/bash/bindings.sh"
