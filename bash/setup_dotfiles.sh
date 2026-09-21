@@ -84,6 +84,14 @@ if [ "$IN_CONTAINER" = false ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# apt — refresh the package index once so the `apt install` calls below can
+# find packages (container images ship with an empty/stale index to keep
+# them small, e.g. the "Unable to locate package" errors this used to hit).
+# ---------------------------------------------------------------------------
+
+sudo apt-get update
+
+# ---------------------------------------------------------------------------
 # wm — Right Alt+1 / Right Alt+2 raise-or-launch Ghostty / Chrome.
 #
 # GNOME's built-in custom-keybinding accelerator format has no name for Mod5
