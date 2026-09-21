@@ -127,7 +127,8 @@ EOF
 fi
 
 # ---------------------------------------------------------------------------
-# nvim — install latest stable if not already present
+# nvim — always install the latest stable release, even if one is already
+# present (overwrites the existing ~/.local install in place).
 # ---------------------------------------------------------------------------
 
 _install_nvim() {
@@ -164,12 +165,12 @@ _install_nvim() {
     rm -rf "$tmp_dir"
 }
 
-if command -v nvim &>/dev/null; then
-    echo "nvim already installed: $(nvim --version | head -1)"
-else
-    echo "nvim not found — installing latest stable version..."
-    _install_nvim
+NVIM_LOCAL_BIN="$HOME/.local/bin/nvim"
+if [ -x "$NVIM_LOCAL_BIN" ]; then
+    echo "nvim currently installed: $("$NVIM_LOCAL_BIN" --version | head -1)"
 fi
+echo "Installing latest stable nvim from GitHub releases..."
+_install_nvim
 
 # ---------------------------------------------------------------------------
 # Node.js — install via nvm if not already present (needed for LSP servers
