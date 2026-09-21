@@ -23,6 +23,7 @@ APT_PKGS_INSTALL_MARKER="install_apt_pkgs.sh"
 CLAUDE_INSTALL_MARKER="install_claude.sh"
 CLAUDE_MOUNT_MARKER="claude_mount"
 CLAUDE_LINK_MARKER="claude-host-bin"
+MEDIA_PROPAGATION_MARKER="bind-propagation=rslave"
 
 # ── Guard: skip if indoor_setup isn't present ───────────────────────────────
 
@@ -60,7 +61,10 @@ grep -q "$CLAUDE_MOUNT_MARKER" "$TARGET" && CLAUDE_MOUNT_PATCHED=true
 CLAUDE_LINK_PATCHED=false
 grep -q "$CLAUDE_LINK_MARKER" "$TARGET" && CLAUDE_LINK_PATCHED=true
 
-if $DOT_FILES_PATCHED && $SSH_PATCHED && $PTRACE_PATCHED && $DAP_SETUP_PATCHED && $GO_INSTALL_PATCHED && $APT_PKGS_INSTALL_PATCHED && $CLAUDE_LINK_PATCHED; then
+MEDIA_PROPAGATION_PATCHED=false
+grep -q "$MEDIA_PROPAGATION_MARKER" "$TARGET" && MEDIA_PROPAGATION_PATCHED=true
+
+if $DOT_FILES_PATCHED && $SSH_PATCHED && $PTRACE_PATCHED && $DAP_SETUP_PATCHED && $GO_INSTALL_PATCHED && $APT_PKGS_INSTALL_PATCHED && $CLAUDE_LINK_PATCHED && $MEDIA_PROPAGATION_PATCHED; then
     echo "[patch_devi_toolkit] Already patched — nothing to do."
     exit 0
 fi
@@ -248,6 +252,23 @@ with open(target, 'w') as f:
     f.write(content)
 PYEOF
     echo "[patch_devi_toolkit] Applied Claude Code host-binary link patch."
+fi
+
+# ── Patch 8: make the /media bind mount live (rslave propagation) ───────────
+#
+# Docker's default bind-mount propagation is rprivate: it only captures
+# whatever is mounted under /media at container-creation time. Anything
+# mounted on the host afterwards (e.g. plugging in a USB/SSD drive, which
+# udisks2 auto-mounts under /media/$USER/<label>) never shows up inside an
+# already-running container -- it just sees the empty pre-mount stub
+# directory. Adding bind-propagation=rslave lets host mount events under
+# /media propagate live into the container. This requires the host's own
+# /media mount to already be in a shared peer group, which it is by default
+# on this machine (root filesystem propagation is "shared").
+
+if ! $MEDIA_PROPAGATION_PATCHED; then
+    sed -i 's#--mount "type=bind,source=/media,target=/media" \\#--mount "type=bind,source=/media,target=/media,bind-propagation=rslave" \\#' "$TARGET"
+    echo "[patch_devi_toolkit] Applied /media live-mount propagation patch."
 fi
 
 echo "[patch_devi_toolkit] Done."
