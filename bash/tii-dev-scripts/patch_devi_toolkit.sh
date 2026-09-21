@@ -19,6 +19,7 @@ SSH_NEW_MARKER='ssh_mount+='
 PTRACE_MARKER="ptrace_cap"
 DAP_SETUP_MARKER="setup_dap_ptrace"
 GO_INSTALL_MARKER="install_go"
+APT_PKGS_INSTALL_MARKER="install_apt_pkgs.sh"
 CLAUDE_INSTALL_MARKER="install_claude.sh"
 CLAUDE_MOUNT_MARKER="claude_mount"
 CLAUDE_LINK_MARKER="claude-host-bin"
@@ -47,6 +48,9 @@ grep -q "$DAP_SETUP_MARKER" "$TARGET" && DAP_SETUP_PATCHED=true
 GO_INSTALL_PATCHED=false
 grep -q "$GO_INSTALL_MARKER" "$TARGET" && GO_INSTALL_PATCHED=true
 
+APT_PKGS_INSTALL_PATCHED=false
+grep -q "$APT_PKGS_INSTALL_MARKER" "$TARGET" && APT_PKGS_INSTALL_PATCHED=true
+
 CLAUDE_INSTALL_PATCHED=false
 grep -q "$CLAUDE_INSTALL_MARKER" "$TARGET" && CLAUDE_INSTALL_PATCHED=true
 
@@ -56,7 +60,7 @@ grep -q "$CLAUDE_MOUNT_MARKER" "$TARGET" && CLAUDE_MOUNT_PATCHED=true
 CLAUDE_LINK_PATCHED=false
 grep -q "$CLAUDE_LINK_MARKER" "$TARGET" && CLAUDE_LINK_PATCHED=true
 
-if $DOT_FILES_PATCHED && $SSH_PATCHED && $PTRACE_PATCHED && $DAP_SETUP_PATCHED && $GO_INSTALL_PATCHED && $CLAUDE_LINK_PATCHED; then
+if $DOT_FILES_PATCHED && $SSH_PATCHED && $PTRACE_PATCHED && $DAP_SETUP_PATCHED && $GO_INSTALL_PATCHED && $APT_PKGS_INSTALL_PATCHED && $CLAUDE_LINK_PATCHED; then
     echo "[patch_devi_toolkit] Already patched — nothing to do."
     exit 0
 fi
@@ -160,7 +164,19 @@ if ! $GO_INSTALL_PATCHED; then
     echo "[patch_devi_toolkit] Applied Go install patch."
 fi
 
-# ── Patch 6: link Claude Code from the host instead of installing per-container
+# ── Patch 6: install apt packages (xclip, tree, htop) automatically after
+# container creation ─────────────────────────────────────────────────────────
+#
+# Injects a call to install_apt_pkgs.sh inside devi-docker-run, right before
+# devi-docker-exec, so these packages are present every time a container is
+# created or restarted.
+
+if ! $APT_PKGS_INSTALL_PATCHED; then
+    sed -i '/^    devi-docker-exec \$image_version$/i\    bash "$HOME/.dot_files/bash/tii-dev-scripts/install_apt_pkgs.sh" "$container_name" 2>\&1 || true' "$TARGET"
+    echo "[patch_devi_toolkit] Applied apt packages install patch."
+fi
+
+# ── Patch 7: link Claude Code from the host instead of installing per-container
 #
 # Mounts the host's *resolved* claude binary (readlink -f'd, since
 # ~/.local/bin/claude is a symlink into ~/.local/share/claude's version
