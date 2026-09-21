@@ -24,7 +24,12 @@ if ! docker inspect "$CONTAINER" &>/dev/null; then
     exit 1
 fi
 
-if docker exec "$CONTAINER" bash -c 'command -v go' &>/dev/null; then
+# Checked by path, not `command -v go`: a non-interactive `docker exec bash
+# -c` doesn't source any dotfiles, so its PATH is just the container's bare
+# default (/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin) --
+# command -v would never find /usr/local/go/bin/go and this would reinstall
+# Go on every single devi-docker-run, even when it's already there.
+if docker exec "$CONTAINER" test -x /usr/local/go/bin/go &>/dev/null; then
     echo "[install_go] go already installed in '$CONTAINER' — skipping."
     exit 0
 fi
