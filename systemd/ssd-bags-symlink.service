@@ -1,0 +1,6 @@
+[Unit]
+Description=Symlink ~/indoor_uav/bags to the javier_ssd bags folder
+
+[Service]
+Type=oneshot
+ExecStart=%h/.dot_files/bash/link_ssd_bags.sh

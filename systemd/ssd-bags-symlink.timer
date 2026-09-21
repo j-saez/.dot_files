@@ -1,0 +1,16 @@
+[Unit]
+Description=Periodically relink indoor_uav/bags to the javier_ssd bags folder when mounted
+# A `PathExists=` path unit was tried first, but even watching just the
+# mountpoint (not the busy bags/ subfolder) self-triggered dozens of times
+# within one second with nothing external changing, tripping systemd's
+# start-limit and landing the unit in `failed`. The triggered service is a
+# cheap, idempotent no-op when already linked, so simple polling sidesteps
+# that inotify flakiness entirely.
+
+[Timer]
+OnBootSec=10s
+OnUnitActiveSec=20s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

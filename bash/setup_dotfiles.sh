@@ -497,6 +497,22 @@ for line in "${SOURCE_LINES[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
+# ssd-bags-symlink — relink ~/indoor_uav/bags to the javier_ssd's bags folder
+# whenever the SSD is mounted (systemd --user timer, host only — no
+# automount events to poll for inside a container).
+# ---------------------------------------------------------------------------
+
+if [ "$IN_CONTAINER" = false ]; then
+    chmod +x "$DEST_DIR/bash/link_ssd_bags.sh"
+    mkdir -p "$HOME/.config/systemd/user"
+    ln -sf "$DEST_DIR/systemd/ssd-bags-symlink.timer" "$HOME/.config/systemd/user/ssd-bags-symlink.timer"
+    ln -sf "$DEST_DIR/systemd/ssd-bags-symlink.service" "$HOME/.config/systemd/user/ssd-bags-symlink.service"
+    systemctl --user daemon-reload
+    systemctl --user enable --now ssd-bags-symlink.timer
+    echo "Enabled ssd-bags-symlink.timer — ~/indoor_uav/bags will auto-relink to the SSD within ~20s of javier_ssd being mounted."
+fi
+
+# ---------------------------------------------------------------------------
 # Cron (host only — cron daemons are not available inside containers)
 # ---------------------------------------------------------------------------
 
