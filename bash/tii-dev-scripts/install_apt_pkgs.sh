@@ -13,7 +13,7 @@
 set -e
 
 CONTAINER="${1:-indoor_ros2_dev}"
-APT_PKGS="${APT_PKGS:-xclip tree htop}"
+APT_PKGS="${APT_PKGS:-xclip tree htop python3-venv}"
 
 if ! docker inspect "$CONTAINER" &>/dev/null; then
     echo "[install_apt_pkgs] Container '$CONTAINER' not found or not running."

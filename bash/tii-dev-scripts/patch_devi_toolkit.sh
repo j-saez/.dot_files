@@ -168,7 +168,7 @@ if ! $GO_INSTALL_PATCHED; then
     echo "[patch_devi_toolkit] Applied Go install patch."
 fi
 
-# ── Patch 6: install apt packages (xclip, tree, htop) automatically after
+# ── Patch 6: install apt packages (xclip, tree, htop, python3-venv) automatically after
 # container creation ─────────────────────────────────────────────────────────
 #
 # Injects a call to install_apt_pkgs.sh inside devi-docker-run, right before

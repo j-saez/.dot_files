@@ -213,8 +213,8 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# npm global packages — prettier (null-ls formatter) and tree-sitter-cli
-# (nvim-treesitter requirement).  Node must already be on PATH at this point.
+# tree-sitter-cli — nvim-treesitter requirement, installed via npm.
+# Node must already be on PATH at this point.
 # ---------------------------------------------------------------------------
 
 # Re-source nvm in case _install_node just ran and npm isn't on PATH yet.
@@ -222,63 +222,13 @@ if [ -s "$NVM_DIR/nvm.sh" ] && ! command -v npm &>/dev/null; then
     \. "$NVM_DIR/nvm.sh"
 fi
 
-if command -v npm &>/dev/null; then
-    _npm_globals=()
-    command -v prettier    &>/dev/null || _npm_globals+=(prettier)
-    command -v tree-sitter &>/dev/null || _npm_globals+=(tree-sitter-cli)
-
-    if [ ${#_npm_globals[@]} -gt 0 ]; then
-        echo "Installing npm global packages: ${_npm_globals[*]}"
-        npm install -g "${_npm_globals[@]}"
-    else
-        echo "prettier and tree-sitter-cli already installed"
-    fi
+if command -v tree-sitter &>/dev/null; then
+    echo "tree-sitter-cli already installed"
+elif command -v npm &>/dev/null; then
+    echo "Installing tree-sitter-cli..."
+    npm install -g tree-sitter-cli
 else
-    echo "WARNING: npm not available — skipping prettier and tree-sitter-cli"
-fi
-
-# ---------------------------------------------------------------------------
-# stylua — Lua formatter required by none-ls / null-ls
-# ---------------------------------------------------------------------------
-
-_install_stylua() {
-    local arch
-    arch=$(uname -m)
-    local stylua_zip
-
-    case "$arch" in
-        x86_64)  stylua_zip="stylua-linux-x86_64.zip" ;;
-        aarch64) stylua_zip="stylua-linux-aarch64.zip" ;;
-        *)
-            echo "Unsupported architecture for stylua: $arch. Install manually."
-            return 1
-            ;;
-    esac
-
-    local url="https://github.com/JohnnyMorganz/StyLua/releases/latest/download/$stylua_zip"
-    local tmp_dir
-    tmp_dir=$(mktemp -d)
-
-    echo "Downloading stylua ($arch)..."
-    if curl -fL --retry 3 --retry-delay 2 --retry-connrefused "$url" -o "$tmp_dir/stylua.zip"; then
-        python3 -c "import zipfile; zipfile.ZipFile('$tmp_dir/stylua.zip').extractall('$tmp_dir')"
-        mkdir -p "$HOME/.local/bin"
-        mv "$tmp_dir/stylua" "$HOME/.local/bin/stylua"
-        chmod +x "$HOME/.local/bin/stylua"
-        echo "stylua installed to $HOME/.local/bin/stylua"
-    else
-        echo "ERROR: failed to download stylua." >&2
-        rm -rf "$tmp_dir"
-        return 1
-    fi
-    rm -rf "$tmp_dir"
-}
-
-if command -v stylua &>/dev/null; then
-    echo "stylua already installed: $(stylua --version)"
-else
-    echo "stylua not found — installing latest stable version..."
-    _install_stylua
+    echo "WARNING: npm not available — skipping tree-sitter-cli"
 fi
 
 # ---------------------------------------------------------------------------
@@ -301,6 +251,18 @@ if dpkg -s bash-completion &>/dev/null 2>&1; then
 else
     echo "Installing bash-completion..."
     sudo apt install -y bash-completion
+fi
+
+# ---------------------------------------------------------------------------
+# python3-venv — mason.nvim installs pip-based tools (black, clang-format,
+# debugpy) into their own venvs, which fails without it.
+# ---------------------------------------------------------------------------
+
+if dpkg -s python3-venv &>/dev/null 2>&1; then
+    echo "python3-venv already installed"
+else
+    echo "Installing python3-venv..."
+    sudo apt install -y python3-venv
 fi
 
 # ---------------------------------------------------------------------------
