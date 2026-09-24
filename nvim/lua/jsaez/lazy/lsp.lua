@@ -184,7 +184,7 @@ config = function()
       print("Diagnostics " .. (not is_enabled and "Enabled" or "Disabled"))
   end, { desc = "Toggle Diagnostics" })
 
-  local cmp_select = { behaviour = cmp.SelectBehavior.Select }
+  local cmp_select = { behavior = cmp.SelectBehavior.Select }
 
   cmp.setup({
     snippet = {
@@ -194,7 +194,7 @@ config = function()
     },
     mapping = cmp.mapping.preset.insert({
       ["<C-n>"] = cmp.mapping.select_next_item(cmp_select),
-      ["<C-m>"] = cmp.mapping.select_prev_item(cmp_select),
+      ["<C-p>"] = cmp.mapping.select_prev_item(cmp_select),
       ["<C-b>"] = cmp.mapping.scroll_docs(-4),
       ["<C-f>"] = cmp.mapping.scroll_docs(4),
       ["<CR>"]  = cmp.mapping.confirm({ select = true }),

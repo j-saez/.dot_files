@@ -15,8 +15,6 @@ return {
         local dap = require("dap")
         local dapui = require("dapui")
 
-        require("dap").set_log_level("DEBUG")
-
         -- Before every new session, delete any stale [dap-terminal] buffers so
         -- nvim-dap's internal pool never hands back a buffer with old content.
         -- Without this, a failed attach (e.g. ptrace denied) leaves a dirty buffer

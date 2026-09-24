@@ -33,14 +33,14 @@ autocmd("LspAttach", {
         local opts = { buffer = e.buf, remap = false }
         vim.keymap.set("n", "gD", function() vim.lsp.buf.declaration() end, opts)
         vim.keymap.set("n", "gd", function() vim.lsp.buf.definition() end, opts)
-        vim.keymap.set("n", "gi", function() vim.lsp.buf.implementation() end, { buffer = 0 }, opts)
-        vim.keymap.set("n", "gw", function() vim.lsp.buf.document_symbol() end, { buffer = 0 }, opts)
-        vim.keymap.set("n", "gr", "<cmd>Trouble lsp_references toggle<cr>", { buffer = 0 })
-        vim.keymap.set("n", "gt", function() vim.lsp.buf.type_definition() end, { buffer = 0 }, opts)
-        vim.keymap.set("n", "<leader>ca", function() vim.lsp.buf.code_action() end, { buffer = 0 }, opts)
-        vim.keymap.set("n", "<leader>rn", function() vim.lsp.buf.rename() end, { buffer = 0 }, opts)
-        vim.keymap.set("n", "K", function() vim.lsp.buf.hover() end, { buffer = 0 }, opts)
-        vim.keymap.set("i", "<C-h>", function() vim.lsp.buf.signature_help() end, { buffer = 0 }, opts)
+        vim.keymap.set("n", "gi", function() vim.lsp.buf.implementation() end, opts)
+        vim.keymap.set("n", "gw", function() vim.lsp.buf.document_symbol() end, opts)
+        vim.keymap.set("n", "gr", "<cmd>Trouble lsp_references toggle<cr>", opts)
+        vim.keymap.set("n", "gt", function() vim.lsp.buf.type_definition() end, opts)
+        vim.keymap.set("n", "<leader>ca", function() vim.lsp.buf.code_action() end, opts)
+        vim.keymap.set("n", "<leader>rn", function() vim.lsp.buf.rename() end, opts)
+        vim.keymap.set("n", "K", function() vim.lsp.buf.hover() end, opts)
+        vim.keymap.set("i", "<C-h>", function() vim.lsp.buf.signature_help() end, opts)
 
     end,
 })
