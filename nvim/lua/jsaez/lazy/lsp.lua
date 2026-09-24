@@ -28,11 +28,21 @@ config = function()
 
   require("mason").setup()
 
+  -- Formatters used by conform.nvim: install through mason if missing
+  local registry = require("mason-registry")
+  registry.refresh(function()
+    for _, name in ipairs({ "stylua", "black", "clang-format" }) do
+      local ok, pkg = pcall(registry.get_package, name)
+      if ok and not pkg:is_installed() then
+        pkg:install()
+      end
+    end
+  end)
+
   require("mason-lspconfig").setup({
     ensure_installed = {
       "lua_ls",
       "pyright",
-      "ltex",
       "marksman",
       "dockerls",
       "clangd",
@@ -53,9 +63,6 @@ config = function()
       },
     },
   })
-
-  -- Enable standard servers (nvim-lspconfig provides their base configs)
-  vim.lsp.enable({ 'pyright', 'ltex', 'marksman', 'dockerls', 'lua_ls' })
 
   -- clangd: started manually so we can inject --compile-commands-dir dynamically
   -- The colcon package name (package.xml <name>) can differ from the
