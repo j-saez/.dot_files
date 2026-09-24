@@ -101,6 +101,7 @@ return {
         Snacks.picker.grep({ finder = grep_with_ext_filter })
       end, desc = "Grep" },
     { "<leader>fc", function() Snacks.picker.colorschemes() end, desc = "Colorschemes" },
+    { "<leader>?", function() Snacks.picker.keymaps() end, desc = "Search all keymaps" },
 
     { "<leader>gl", function() Snacks.picker.git_log()      end, desc = "Git log" },
     { "<leader>gL", function() Snacks.picker.git_log_file() end, desc = "Git log (current file)" },
