@@ -55,3 +55,7 @@ vim.keymap.set("n","<C-A-L>", "<cmd> vertical resize -3 <CR>")
 vim.keymap.set("n","<C-A-H>", "<cmd> vertical resize +3 <CR>")
 vim.keymap.set("n","<C-A-J>", "<cmd> resize +2 <CR>")
 vim.keymap.set("n","<C-A-K>", "<cmd> resize -3 <CR>")
+
+-- Undotree (built-in since 0.12)
+vim.cmd.packadd("nvim.undotree")
+vim.keymap.set("n", "<leader>u", "<cmd>Undotree<cr>", { desc = "Toggle undotree" })
