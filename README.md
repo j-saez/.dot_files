@@ -32,20 +32,42 @@ git submodule update --init --recursive
 bash ~/.dot_files/bash/setup_dotfiles.sh
 ```
 
+You'll be asked to pick an install **profile** the first time (skip the
+prompt with `--profile=personal` or `--profile=shared`):
+
+- **personal** — your own machine, installs everything as described below.
+- **shared** — an account/computer other people use too. nvim and tmux are
+  still built from source and installed as the default under `~/.config`,
+  and `fkill`/`fdrm`/`fdrmi` are still available, but:
+  - **ble.sh** (ghost-text, syntax highlighting) is skipped entirely
+  - fzf-powered Tab completion and Ctrl+R history search are skipped
+    (falls back to plain `bash-completion` / bash's native reverse-i-search)
+  - `tmux` is left alone instead of launching your fzf session picker — use
+    `tmux-jsaez` for that instead
+  - the WM/GNOME changes (Ctrl+Alt+T override, xbindkeys autostart, Ghostty
+    as default terminal) are skipped, since they'd affect anyone else on
+    that account
+
+Pick a profile with the fzf picker when running interactively (falls back to
+a numbered prompt if `fzf` isn't installed yet).
+
+The choice is saved to `~/.dotfiles_profile`; re-run with `--profile=...` to
+change it later.
+
 The script will automatically:
 
-- Create symlinks for Neovim (`~/.config/nvim`), Tmux (`~/.config/tmux`), Ghostty (`~/.config/ghostty`), and ble.sh (`~/.config/blesh/init.sh`)
-- Install the maximized Ghostty launcher (`~/.local/bin/ghostty-maximized`) and point the app launcher and GNOME's Ctrl+Alt+T shortcut at it
-- Install **Neovim** (latest stable, to `~/.local/bin`)
+- Create symlinks for Neovim (`~/.config/nvim`), Tmux (`~/.config/tmux`), Ghostty (`~/.config/ghostty`), and (personal profile only) ble.sh (`~/.config/blesh/init.sh`)
+- Install the maximized Ghostty launcher (`~/.local/bin/ghostty-maximized`) and, on the personal profile, point the app launcher and GNOME's Ctrl+Alt+T shortcut at it
+- Build and install **Neovim** from source, tracking upstream's `stable` branch (to `~/.local/bin`)
+- Build and install **tmux** from source, tracking the latest GitHub release (to `~/.local/bin`)
 - Install **Node.js** via nvm (required by pyright and other LSP servers)
-- Install npm globals: `prettier`, `tree-sitter-cli`
-- Install **stylua** (Lua formatter)
+- Install npm globals: `tree-sitter-cli`
 - Install **ripgrep**
 - Install **bash-completion**
-- Build and install **ble.sh** from the submodule
+- Build and install **ble.sh** from the submodule (personal profile only)
 - Clone/update **fzf-tab-completion** from the submodule
 - Build and install **Ghostty** from source (host only, skipped inside containers)
-- Update `~/.bash_aliases_local` to source aliases, bindings, and ROS2 completion
+- Update `~/.bash_aliases_local` to source the profile, aliases, bindings, and ROS2 completion
 - Install a daily cron job to auto-update the repo (host only)
 
 > **Containers:** The script detects Docker environments and skips host-only steps

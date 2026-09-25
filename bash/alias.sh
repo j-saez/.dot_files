@@ -188,4 +188,11 @@ if command -v kubecolor &> /dev/null; then
     alias kubectl=kubecolor
 fi
 
-alias tmux='bash $HOME/.dot_files/bash/tmux_picker.sh'
+# On a personal machine, `tmux` itself launches the fzf session picker with
+# your config. On a shared account, that would force the picker on anyone
+# else who types `tmux`, so it's opt-in there via `tmux-jsaez` instead.
+if [ "${DOTFILES_PROFILE:-personal}" = shared ]; then
+    alias tmux-jsaez='bash $HOME/.dot_files/bash/tmux_picker.sh'
+else
+    alias tmux='bash $HOME/.dot_files/bash/tmux_picker.sh'
+fi

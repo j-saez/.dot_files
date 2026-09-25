@@ -18,6 +18,72 @@ IN_CONTAINER=false
 [ -f /.dockerenv ] && IN_CONTAINER=true
 
 # ---------------------------------------------------------------------------
+# Profile — "personal" installs everything as-is. "shared" is for an
+# account/machine used by other people too, and skips the bits they tend not
+# to want opted into for them on your behalf: ble.sh and fzf hijacking Tab
+# and Ctrl+R (bash/bindings.sh — laptop-only), `tmux` launching your session
+# picker by default (bash/alias.sh — use `tmux-jsaez` instead), and the
+# WM/GNOME changes below (Ctrl+Alt+T override, xbindkeys autostart, Ghostty
+# as default terminal). nvim and tmux configs are still installed as the
+# default in both profiles.
+#
+# The choice is saved to PROFILE_FILE so re-running the script (e.g. the
+# container auto-setup hook in ~/.bash_aliases_local) doesn't re-prompt; pass
+# --profile=personal|shared explicitly to change it later.
+# ---------------------------------------------------------------------------
+
+PROFILE_FILE="$HOME/.dotfiles_profile"
+PROFILE=""
+PROFILE_DESC_PERSONAL="your own machine — install everything"
+PROFILE_DESC_SHARED="an account/computer other people use too (skips ble.sh, fzf Tab/Ctrl+R, the tmux picker default, and the WM/GNOME shortcut changes)"
+
+for arg in "$@"; do
+    case "$arg" in
+        --profile=*) PROFILE="${arg#*=}" ;;
+        --personal) PROFILE="personal" ;;
+        --shared) PROFILE="shared" ;;
+    esac
+done
+
+if [ -z "$PROFILE" ] && [ -f "$PROFILE_FILE" ]; then
+    PROFILE=$(cat "$PROFILE_FILE")
+fi
+
+if [ -z "$PROFILE" ]; then
+    if [ -t 0 ] && command -v fzf &>/dev/null; then
+        PROFILE=$(printf '%s\n' \
+            "personal   $PROFILE_DESC_PERSONAL" \
+            "shared     $PROFILE_DESC_SHARED" \
+            | fzf --reverse --header "Select install profile (Esc = personal):" --bind 'ctrl-j:down,ctrl-k:up' \
+            | awk '{print $1}') || true
+        [ -z "$PROFILE" ] && PROFILE="personal"
+    elif [ -t 0 ]; then
+        echo "Which install profile is this machine?"
+        echo "  1) personal — $PROFILE_DESC_PERSONAL"
+        echo "  2) shared   — $PROFILE_DESC_SHARED"
+        read -rp "Select [1/2, default 1]: " _profile_choice || true
+        case "$_profile_choice" in
+            2) PROFILE="shared" ;;
+            *) PROFILE="personal" ;;
+        esac
+    else
+        echo "No --profile given and not running interactively — defaulting to 'personal'. Pass --profile=shared to opt into the shared-machine profile."
+        PROFILE="personal"
+    fi
+fi
+
+case "$PROFILE" in
+    personal|shared) ;;
+    *)
+        echo "ERROR: unknown profile '$PROFILE' (expected 'personal' or 'shared')" >&2
+        exit 1
+        ;;
+esac
+
+echo "$PROFILE" > "$PROFILE_FILE"
+echo "Using profile: $PROFILE (saved to $PROFILE_FILE — re-run with --profile=personal|shared to change)"
+
+# ---------------------------------------------------------------------------
 # Repo
 # ---------------------------------------------------------------------------
 
@@ -36,10 +102,13 @@ fi
 # where the directory may not have been provisioned by Ansible.
 mkdir -p "$HOME/.config"
 
-mkdir -p "$(dirname "$BLERC_TARGET")"
-[ -L "$BLERC_TARGET" ] || [ -e "$BLERC_TARGET" ] && rm -f "$BLERC_TARGET"
-ln -sf "$DEST_DIR/bash/blerc" "$BLERC_TARGET"
-echo "Linked $BLERC_TARGET -> $DEST_DIR/bash/blerc"
+# ble.sh (and its blerc) is laptop-only — see the Profile section above.
+if [ "$PROFILE" = personal ]; then
+    mkdir -p "$(dirname "$BLERC_TARGET")"
+    [ -L "$BLERC_TARGET" ] || [ -e "$BLERC_TARGET" ] && rm -f "$BLERC_TARGET"
+    ln -sf "$DEST_DIR/bash/blerc" "$BLERC_TARGET"
+    echo "Linked $BLERC_TARGET -> $DEST_DIR/bash/blerc"
+fi
 
 if [ -L "$NVIM_TARGET" ] || [ -e "$NVIM_TARGET" ]; then
     echo "Removing existing $NVIM_TARGET"
@@ -77,7 +146,9 @@ if [ "$IN_CONTAINER" = false ]; then
     # GNOME's built-in Ctrl+Alt+T "Launch Terminal" shortcut bypasses the
     # .desktop file entirely and execs org.gnome.desktop.default-applications
     # .terminal directly, so it needs to be pointed at the wrapper too.
-    if command -v gsettings &>/dev/null; then
+    # Skipped on "shared" profiles: this is a GNOME-session-wide default that
+    # would repoint Ctrl+Alt+T for anyone else using this account too.
+    if [ "$PROFILE" = personal ] && command -v gsettings &>/dev/null; then
         gsettings set org.gnome.desktop.default-applications.terminal exec "$HOME/.local/bin/ghostty-maximized"
         echo "Pointed GNOME's default terminal (Ctrl+Alt+T) at ghostty-maximized"
     fi
@@ -98,9 +169,13 @@ sudo apt-get update
 # (Right Alt is bound to ISO_Level3_Shift/Mod5 on this keyboard layout,
 # distinct from Left Alt/Mod1), so xbindkeys is used instead to grab the
 # raw modifier directly.
+#
+# Skipped entirely on "shared" profiles: xbindkeys autostarts and grabs
+# these key combos session-wide, which would affect anyone else using this
+# account, not just you.
 # ---------------------------------------------------------------------------
 
-if [ "$IN_CONTAINER" = false ]; then
+if [ "$IN_CONTAINER" = false ] && [ "$PROFILE" = personal ]; then
     if command -v xbindkeys &>/dev/null; then
         echo "xbindkeys already installed"
     else
@@ -136,38 +211,31 @@ EOF
 fi
 
 # ---------------------------------------------------------------------------
-# nvim — always install the latest stable release, even if one is already
-# present (overwrites the existing ~/.local install in place).
+# nvim — built from source (both profiles), always rebuilt against upstream's
+# `stable` branch (which GitHub/upstream always repoint at the latest stable
+# release), same "always reinstall latest" policy the old prebuilt-tarball
+# install had. Building from source instead of using the prebuilt release
+# tarball avoids depending on whatever glibc those binaries were linked
+# against, at the cost of a few minutes of compile time per run.
 # ---------------------------------------------------------------------------
 
+echo "Installing nvim build dependencies..."
+sudo apt-get install -y ninja-build gettext cmake unzip curl build-essential
+
 _install_nvim() {
-    local arch
-    arch=$(uname -m)
-    local nvim_tarball
-
-    case "$arch" in
-        x86_64)  nvim_tarball="nvim-linux-x86_64.tar.gz" ;;
-        aarch64) nvim_tarball="nvim-linux-arm64.tar.gz" ;;
-        *)
-            echo "Unsupported architecture: $arch. Install nvim manually."
-            return 1
-            ;;
-    esac
-
-    local url="https://github.com/neovim/neovim/releases/latest/download/$nvim_tarball"
     local tmp_dir
     tmp_dir=$(mktemp -d)
 
-    echo "Downloading nvim ($arch) from GitHub releases..."
-    # Avoid set-e aborting before we can clean up tmp_dir on failure.
-    if curl -fL --retry 3 --retry-delay 2 --retry-connrefused "$url" -o "$tmp_dir/nvim.tar.gz"; then
+    echo "Cloning neovim (stable)..."
+    if git clone --branch stable --depth 1 https://github.com/neovim/neovim "$tmp_dir"; then
+        echo "Building nvim from source (this will take a few minutes)..."
         # Install to ~/.local so no sudo is required; ~/.local/bin is on PATH
         # via ~/.bash_aliases_local (and via the team bashrc on the host).
-        mkdir -p "$HOME/.local"
-        tar -C "$HOME/.local" --strip-components=1 -xzf "$tmp_dir/nvim.tar.gz"
+        make -C "$tmp_dir" CMAKE_BUILD_TYPE=RelWithDebInfo CMAKE_INSTALL_PREFIX="$HOME/.local"
+        make -C "$tmp_dir" install
         echo "nvim installed to $HOME/.local/bin/nvim"
     else
-        echo "ERROR: failed to download nvim." >&2
+        echo "ERROR: failed to clone neovim." >&2
         rm -rf "$tmp_dir"
         return 1
     fi
@@ -178,8 +246,55 @@ NVIM_LOCAL_BIN="$HOME/.local/bin/nvim"
 if [ -x "$NVIM_LOCAL_BIN" ]; then
     echo "nvim currently installed: $("$NVIM_LOCAL_BIN" --version | head -1)"
 fi
-echo "Installing latest stable nvim from GitHub releases..."
+echo "Building latest stable nvim from source..."
 _install_nvim
+
+# ---------------------------------------------------------------------------
+# tmux — built from source (both profiles), always rebuilt against the latest
+# GitHub release (tmux has no moving "stable" tag/branch like neovim, so the
+# latest release tag is resolved via the GitHub API instead). Uses the
+# release tarball (not a raw git clone) because it ships a pre-generated
+# `configure`, avoiding an autoconf/automake/pkg-config dependency.
+# ---------------------------------------------------------------------------
+
+echo "Installing tmux build dependencies..."
+sudo apt-get install -y libevent-dev libncurses-dev pkg-config build-essential
+
+_install_tmux() {
+    local tmp_dir tarball_url
+    tmp_dir=$(mktemp -d)
+
+    echo "Resolving latest tmux release..."
+    tarball_url=$(curl -fsSL --retry 3 --retry-delay 2 --retry-connrefused \
+        https://api.github.com/repos/tmux/tmux/releases/latest \
+        | python3 -c "import json,sys; d=json.load(sys.stdin); print(next(a['browser_download_url'] for a in d['assets'] if a['name'].endswith('.tar.gz')))" 2>/dev/null)
+
+    if [ -z "$tarball_url" ]; then
+        echo "ERROR: could not resolve latest tmux release tarball." >&2
+        rm -rf "$tmp_dir"
+        return 1
+    fi
+
+    echo "Downloading tmux source ($tarball_url)..."
+    if curl -fL --retry 3 --retry-delay 2 --retry-connrefused "$tarball_url" -o "$tmp_dir/tmux.tar.gz"; then
+        tar -C "$tmp_dir" --strip-components=1 -xzf "$tmp_dir/tmux.tar.gz"
+        echo "Building tmux from source..."
+        (cd "$tmp_dir" && ./configure --prefix="$HOME/.local" && make -j"$(nproc)" && make install)
+        echo "tmux installed to $HOME/.local/bin/tmux"
+    else
+        echo "ERROR: failed to download tmux." >&2
+        rm -rf "$tmp_dir"
+        return 1
+    fi
+    rm -rf "$tmp_dir"
+}
+
+TMUX_LOCAL_BIN="$HOME/.local/bin/tmux"
+if [ -x "$TMUX_LOCAL_BIN" ]; then
+    echo "tmux currently installed: $("$TMUX_LOCAL_BIN" -V)"
+fi
+echo "Building latest tmux from source..."
+_install_tmux
 
 # ---------------------------------------------------------------------------
 # Node.js — install via nvm if not already present (needed for LSP servers
@@ -280,7 +395,9 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# ble.sh — bash line editor: ghost text, syntax highlighting, completion UI
+# ble.sh — bash line editor: ghost text, syntax highlighting, completion UI.
+# Laptop-only (see the Profile section above) — it changes the shell's look
+# and default keybindings for anyone using the account, not just you.
 # ---------------------------------------------------------------------------
 
 BLE_SH_DIR="$DEST_DIR/bash/ble.sh"
@@ -305,16 +422,18 @@ _install_blesh() {
     echo "ble.sh installed to $HOME/.local/share/blesh/"
 }
 
-if [ -f "$HOME/.local/share/blesh/ble.sh" ]; then
-    echo "ble.sh already installed"
-    if [ -d "$BLE_SH_DIR" ]; then
-        echo "Pulling ble.sh updates..."
-        git -C "$BLE_SH_DIR" pull --ff-only
-        git -C "$BLE_SH_DIR" submodule update --init --recursive
-        make -C "$BLE_SH_DIR" install PREFIX="$HOME/.local"
+if [ "$PROFILE" = personal ]; then
+    if [ -f "$HOME/.local/share/blesh/ble.sh" ]; then
+        echo "ble.sh already installed"
+        if [ -d "$BLE_SH_DIR" ]; then
+            echo "Pulling ble.sh updates..."
+            git -C "$BLE_SH_DIR" pull --ff-only
+            git -C "$BLE_SH_DIR" submodule update --init --recursive
+            make -C "$BLE_SH_DIR" install PREFIX="$HOME/.local"
+        fi
+    else
+        _install_blesh
     fi
-else
-    _install_blesh
 fi
 
 # ---------------------------------------------------------------------------
@@ -405,8 +524,10 @@ fi
 #   1. PATH fix — must come first so nvim (installed to ~/.local/bin) is
 #      reachable in the same session.  Uses $HOME, not $USER, because Docker
 #      sets $HOME but often leaves $USER unset.
-#   2. Personal aliases / bindings.
-#   3. Container auto-setup — runs this script on first entry into a container
+#   2. dotfiles_profile.sh — must come before alias.sh/bindings.sh, which
+#      read $DOTFILES_PROFILE to decide what to wire up.
+#   3. Personal aliases / bindings.
+#   4. Container auto-setup — runs this script on first entry into a container
 #      where ~/.dot_files is mounted but symlinks don't exist yet.
 BASHRC="$HOME/.bash_aliases_local"
 
@@ -443,6 +564,7 @@ SOURCE_LINES=(
     "[ -s \"\$HOME/.nvm/nvm.sh\" ] && \\. \"\$HOME/.nvm/nvm.sh\""
     "[ -f /.dockerenv ] && export TERM=xterm-256color"
     "[ -f /.dockerenv ] && [ -f \"\$HOME/.dot_files/bash/devi_activate.sh\" ] && source \"\$HOME/.dot_files/bash/devi_activate.sh\""
+    "source \$HOME/.dot_files/bash/dotfiles_profile.sh"
     "source \$HOME/.dot_files/bash/alias.sh"
     "source \$HOME/.dot_files/bash/ros2_completion.sh"
     "source \$HOME/.dot_files/bash/bindings.sh"

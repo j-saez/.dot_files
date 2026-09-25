@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-TMUX_BIN=/usr/bin/tmux
+# setup_dotfiles.sh builds tmux from source to ~/.local/bin — use that build
+# rather than whatever (older) tmux the system package manager provides.
+TMUX_BIN="$HOME/.local/bin/tmux"
 TMUX_CONF="$HOME/.config/tmux/tmux.conf"
 
 # Pass through any explicit subcommands unchanged

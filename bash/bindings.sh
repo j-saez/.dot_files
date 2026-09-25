@@ -1,10 +1,17 @@
-# ble.sh must be loaded before everything else in this file
-[[ $- == *i* ]] && [[ -f "$HOME/.local/share/blesh/ble.sh" ]] && \
-    source "$HOME/.local/share/blesh/ble.sh" --noattach
-
 # bash-completion — provides completion data for git, docker, kubectl, etc.
 [[ -f /usr/share/bash-completion/bash_completion ]] && \
     source /usr/share/bash-completion/bash_completion
+
+# Everything below (ble.sh, fzf-powered Ctrl+R/Tab) is laptop-only (set via
+# setup_dotfiles.sh, see bash/dotfiles_profile.sh) — it changes the shell's
+# look and default keybindings for anyone using the account, not just you.
+# On a "shared" profile this leaves plain bash-completion for Tab and bash's
+# native reverse-i-search for Ctrl+R.
+if [[ "${DOTFILES_PROFILE:-personal}" = personal ]]; then
+
+# ble.sh must be loaded before everything else that touches readline below
+[[ $- == *i* ]] && [[ -f "$HOME/.local/share/blesh/ble.sh" ]] && \
+    source "$HOME/.local/share/blesh/ble.sh" --noattach
 
 # Vim-style paging shared by every fzf popup below: ctrl-j/ctrl-k already move
 # down/up by default in fzf, ctrl-h/ctrl-l have no built-in meaning in a flat
@@ -55,3 +62,5 @@ fi
 
 # ble.sh must attach at the very end
 [[ ${BLE_VERSION-} ]] && ble-attach
+
+fi
