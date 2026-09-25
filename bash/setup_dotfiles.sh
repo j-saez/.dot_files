@@ -258,7 +258,11 @@ _install_nvim
 # ---------------------------------------------------------------------------
 
 echo "Installing tmux build dependencies..."
-sudo apt-get install -y libevent-dev libncurses-dev pkg-config build-essential
+# bison provides yacc, which configure hard-requires to (re)generate the
+# cmd-parse.y grammar -- missing on machines that never had other build
+# tooling installed on them before (confirmed failure: "configure: error:
+# 'yacc not found'" on a bare shared machine).
+sudo apt-get install -y libevent-dev libncurses-dev pkg-config build-essential bison
 
 _install_tmux() {
     local tmp_dir tarball_url
