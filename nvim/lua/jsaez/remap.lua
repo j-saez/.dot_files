@@ -13,7 +13,7 @@ vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv", { desc = "Move selection up" })
 vim.keymap.set("x", "<leader>s",
   [[:s/\<<C-r><C-w>\>//g<Left><Left>]],
   { desc = "Substitute word under cursor in visual selection (case-sensitive, no confirmation)" })
-vim.keymap.set("n", "<leader>s",
+vim.keymap.set("n", "<leader>ss",
   [[:%s/\<<C-r><C-w>\>//g<Left><Left>]],
   { desc = "Substitute word under cursor globally (case-sensitive and NO confirmation)" })
 vim.keymap.set("n", "<leader>sc",
