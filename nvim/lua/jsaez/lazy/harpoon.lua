@@ -54,7 +54,7 @@ return {
             local ns = vim.api.nvim_create_namespace("HarpoonLegend")
             for i, line in ipairs(lines) do
                 if not line:match("^  %s") and line:match("%S") then
-                    vim.api.nvim_buf_add_highlight(legend_buf, ns, "Title", i - 1, 0, -1)
+                    vim.api.nvim_buf_set_extmark(legend_buf, ns, i - 1, 0, { end_col = #line, hl_group = "Title" })
                 end
             end
 

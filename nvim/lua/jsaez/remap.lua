@@ -24,20 +24,15 @@ vim.keymap.set("n", "<leader>sc",
 vim.keymap.set("v", "p", [["_dP]])
 
 -- Run macros over different lines
-vim.api.nvim_set_keymap([[x]], [[@]], [[:<C-u>lua ExecuteMacroOverVisualRange()<CR>]], {noremap=true})
+vim.keymap.set("x", "@", ":<C-u>lua ExecuteMacroOverVisualRange()<CR>")
 
 function ExecuteMacroOverVisualRange()
-	vim.api.nvim_exec([[
-		echo "@".getcmdline()
-		execute ":'<,'>normal @".nr2char(getchar())
-	]], [[true]])
+	vim.cmd("'<,'>normal @" .. vim.fn.getcharstr())
 end
 
 -- Keep visual selection after indenting
-vim.api.nvim_exec([[
-    vmap > >gv
-    vmap < <gv
-]], [[true]])
+vim.keymap.set("v", ">", ">gv")
+vim.keymap.set("v", "<", "<gv")
 
 -- Buffers
 vim.keymap.set("n","<leader>bd", "<cmd>bd<cr>") -- Delete buffer
