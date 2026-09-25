@@ -211,31 +211,41 @@ EOF
 fi
 
 # ---------------------------------------------------------------------------
-# nvim — built from source (both profiles), always rebuilt against upstream's
-# `stable` branch (which GitHub/upstream always repoint at the latest stable
-# release), same "always reinstall latest" policy the old prebuilt-tarball
-# install had. Building from source instead of using the prebuilt release
-# tarball avoids depending on whatever glibc those binaries were linked
-# against, at the cost of a few minutes of compile time per run.
+# nvim — always install the latest GitHub release (both profiles), from the
+# prebuilt release binary rather than compiling from source. Simpler and
+# much faster than a from-source build; unlike tmux, nvim publishes an
+# official prebuilt binary per architecture, so there's no glibc/toolchain
+# concern to trade off against the compile time.
 # ---------------------------------------------------------------------------
 
-echo "Installing nvim build dependencies..."
-sudo apt-get install -y ninja-build gettext cmake unzip curl build-essential
-
 _install_nvim() {
+    local arch
+    arch=$(uname -m)
+    local nvim_tarball
+
+    case "$arch" in
+        x86_64)  nvim_tarball="nvim-linux-x86_64.tar.gz" ;;
+        aarch64) nvim_tarball="nvim-linux-arm64.tar.gz" ;;
+        *)
+            echo "Unsupported architecture: $arch. Install nvim manually."
+            return 1
+            ;;
+    esac
+
+    local url="https://github.com/neovim/neovim/releases/latest/download/$nvim_tarball"
     local tmp_dir
     tmp_dir=$(mktemp -d)
 
-    echo "Cloning neovim (stable)..."
-    if git clone --branch stable --depth 1 https://github.com/neovim/neovim "$tmp_dir"; then
-        echo "Building nvim from source (this will take a few minutes)..."
+    echo "Downloading nvim ($arch) from GitHub releases..."
+    # Avoid set-e aborting before we can clean up tmp_dir on failure.
+    if curl -fL --retry 3 --retry-delay 2 --retry-connrefused "$url" -o "$tmp_dir/nvim.tar.gz"; then
         # Install to ~/.local so no sudo is required; ~/.local/bin is on PATH
         # via ~/.bash_aliases_local (and via the team bashrc on the host).
-        make -C "$tmp_dir" CMAKE_BUILD_TYPE=RelWithDebInfo CMAKE_INSTALL_PREFIX="$HOME/.local"
-        make -C "$tmp_dir" install
+        mkdir -p "$HOME/.local"
+        tar -C "$HOME/.local" --strip-components=1 -xzf "$tmp_dir/nvim.tar.gz"
         echo "nvim installed to $HOME/.local/bin/nvim"
     else
-        echo "ERROR: failed to clone neovim." >&2
+        echo "ERROR: failed to download nvim." >&2
         rm -rf "$tmp_dir"
         return 1
     fi
@@ -246,7 +256,7 @@ NVIM_LOCAL_BIN="$HOME/.local/bin/nvim"
 if [ -x "$NVIM_LOCAL_BIN" ]; then
     echo "nvim currently installed: $("$NVIM_LOCAL_BIN" --version | head -1)"
 fi
-echo "Building latest stable nvim from source..."
+echo "Installing latest nvim release from GitHub..."
 _install_nvim
 
 # ---------------------------------------------------------------------------

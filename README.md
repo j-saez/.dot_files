@@ -37,8 +37,8 @@ prompt with `--profile=personal` or `--profile=shared`):
 
 - **personal** — your own machine, installs everything as described below.
 - **shared** — an account/computer other people use too. nvim and tmux are
-  still built from source and installed as the default under `~/.config`,
-  and `fkill`/`fdrm`/`fdrmi` are still available, but:
+  still installed as the default under `~/.config`, and `fkill`/`fdrm`/`fdrmi`
+  are still available, but:
   - **ble.sh** (ghost-text, syntax highlighting) is skipped entirely
   - fzf-powered Tab completion and Ctrl+R history search are skipped
     (falls back to plain `bash-completion` / bash's native reverse-i-search)
@@ -58,7 +58,7 @@ The script will automatically:
 
 - Create symlinks for Neovim (`~/.config/nvim`), Tmux (`~/.config/tmux`), Ghostty (`~/.config/ghostty`), and (personal profile only) ble.sh (`~/.config/blesh/init.sh`)
 - Install the maximized Ghostty launcher (`~/.local/bin/ghostty-maximized`) and, on the personal profile, point the app launcher and GNOME's Ctrl+Alt+T shortcut at it
-- Build and install **Neovim** from source, tracking upstream's `stable` branch (to `~/.local/bin`)
+- Install **Neovim** (latest GitHub release, prebuilt binary, to `~/.local/bin`)
 - Build and install **tmux** from source, tracking the latest GitHub release (to `~/.local/bin`)
 - Install **Node.js** via nvm (required by pyright and other LSP servers)
 - Install npm globals: `tree-sitter-cli`
