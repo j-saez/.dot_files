@@ -1,10 +1,29 @@
 -- Filterable git keybindings help (snacks picker).
--- Type to filter by section, key or description. Enter runs global keys;
+-- Type to filter by section, key or description (try "how" for workflow recipes). Enter runs global keys;
 -- keys that only exist inside a fugitive/diffview buffer just close the list.
 local M = {}
 
 -- { section, key, description, global? }
 local keys = {
+    -- workflows: step-by-step recipes (filter with "how")
+    { "how: conflicts", "<ldr>gd",   "1. open Diffview; files under 'Conflicts'", true },
+    { "how: conflicts", "↵",         "2. open file -> 4-pane merge view (middle = result)" },
+    { "how: conflicts", "]x / [x",   "3. jump between conflicts" },
+    { "how: conflicts", "<ldr>co/ct", "4. take ours / theirs  (cb base, ca both, dx drop)" },
+    { "how: conflicts", "-",         "5. stage resolved file in the panel" },
+    { "how: conflicts", "<ldr>gx",   "6. close, then <ldr>gs + cc (or merge/rebase --continue)", true },
+
+    { "how: commits", "<ldr>gc",     "1. picker: Tab = select up to 2 commits, Enter", true },
+    { "how: commits", "",            "   1 commit = vs working tree; 2 = older..newer" },
+    { "how: commits", "↵",           "2. click a file in the panel to see its diff" },
+    { "how: commits", "<ldr>gx",     "3. close", true },
+    { "how: commits", "<ldr>gd",     "alt: whole repo vs HEAD", true },
+
+    { "how: file history", "<ldr>gD", "A. all commits touching this file; ↵ = diff", true },
+    { "how: file history", "<ldr>gf", "B. pick one commit -> split vs working copy", true },
+    { "how: file history", "]c / [c", "   (in split) next / prev change; do/dp get/put" },
+    { "how: file history", "<ldr>gL", "C. just browse the file's log (no diff)", true },
+
     { "fugitive", "<ldr>gs",   "git status window",              true },
     { "fugitive status", "s / u",     "stage / unstage file" },
     { "fugitive status", "U",         "unstage all" },
@@ -69,10 +88,11 @@ function M.open(filter)
         items = items,
         pattern = filter,
         layout = { preset = "select" },
+        sort = { fields = { "idx" } }, -- keep list order (steps 1,2,3...) when filtering
         format = function(item)
             return {
-                { string.format("%-16s", item.section), "Comment" },
-                { string.format("%-10s", item.key), "Special" },
+                { string.format("%-18s", item.section), "Comment" },
+                { string.format("%-14s", item.key), "Special" },
                 { item.desc },
             }
         end,

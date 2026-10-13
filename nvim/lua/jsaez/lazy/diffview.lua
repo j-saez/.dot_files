@@ -110,6 +110,7 @@ return {
         { "<leader>gc", git_compare_commits,               desc = "Compare commits (picker)" },
         { "<leader>gf", git_file_compare,                  desc = "File vs commit (picker)" },
         { "<leader>g?", function() require("jsaez.git_help").open() end, desc = "Git keybindings help" },
+        { "<leader>g/", function() require("jsaez.git_help").open("how") end, desc = "Git workflow recipes" },
         { "<leader>m?", function() require("jsaez.git_help").open("merge") end, desc = "Merge conflict commands" },
     },
     opts = {},
