@@ -526,6 +526,22 @@ else:
 fi
 
 # ---------------------------------------------------------------------------
+# Pre-install nvim plugins (both profiles) so the first interactive nvim start
+# isn't spent waiting on lazy.nvim. `Lazy! install` only clones missing plugins
+# (no updates), so it's a fast no-op on re-runs and doesn't touch lazy-lock.json.
+# Failure here is non-fatal: lazy will just install on first launch instead.
+# ---------------------------------------------------------------------------
+
+if [ -x "$NVIM_LOCAL_BIN" ]; then
+    echo "Pre-installing nvim plugins (lazy.nvim)..."
+    if timeout 600 "$NVIM_LOCAL_BIN" --headless "+Lazy! install" +qa; then
+        echo "nvim plugins installed."
+    else
+        echo "WARNING: headless plugin install failed — lazy.nvim will retry on first nvim start." >&2
+    fi
+fi
+
+# ---------------------------------------------------------------------------
 # ~/.bash_aliases_local — personal shell customisations
 # ---------------------------------------------------------------------------
 
