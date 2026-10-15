@@ -8,8 +8,11 @@ local keys = {
     -- workflows: step-by-step recipes (filter with "how")
     { "how: conflicts", "<ldr>gd",   "1. open Diffview; files under 'Conflicts'", true },
     { "how: conflicts", "↵",         "2. open file -> 4-pane merge view (middle = result)" },
-    { "how: conflicts", "]x / [x",   "3. jump between conflicts" },
-    { "how: conflicts", "<ldr>co/ct", "4. take ours / theirs  (cb base, ca both, dx drop)" },
+    { "how: conflicts", "]x / [x",   "3. jump to a conflict (cursor must be INSIDE the block)" },
+    { "how: conflicts", "<ldr>co/ct", "4. pick a side: ours / theirs  (cb base, ca both, dx drop)" },
+    { "how: conflicts", "",          "   ours = your branch (HEAD); theirs = branch being merged" },
+    { "how: conflicts", "2do / 3do", "   alt: pull the hunk from ours (2) / theirs (3) pane" },
+    { "how: conflicts", "",          "   partial / custom: edit middle buffer, delete <<<< ==== >>>>" },
     { "how: conflicts", "-",         "5. stage resolved file in the panel" },
     { "how: conflicts", "<ldr>gx",   "6. close, then <ldr>gs + cc (or merge/rebase --continue)", true },
 
