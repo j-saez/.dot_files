@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(colcon build:*)",
+      "Bash(colcon test:*)",
+      "Bash(colcon test-result:*)",
+      "Bash(colcon list:*)",
+      "Bash(ros2 topic list:*)",
+      "Bash(ros2 topic info:*)",
+      "Bash(ros2 node list:*)",
+      "Bash(ros2 node info:*)",
+      "Bash(ros2 interface show:*)",
+      "Bash(ros2 pkg:*)",
+      "Bash(ros2 param list:*)",
+      "Bash(ros2 param get:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ],
+    "deny": [
+      "Read(./build/**)",
+      "Read(./install/**)",
+      "Read(./log/**)",
+      "Bash(ros2 topic pub:*)",
+      "Bash(ros2 service call:*)",
+      "Bash(ros2 action send_goal:*)",
+      "Bash(ros2 param set:*)"
+    ]
+  }
+}
