@@ -50,7 +50,12 @@ if [ -z "$PROFILE" ] && [ -f "$PROFILE_FILE" ]; then
 fi
 
 if [ -z "$PROFILE" ]; then
-    if [ -t 0 ] && command -v fzf &>/dev/null; then
+    if [ "$IN_CONTAINER" = true ]; then
+        # The container mounts ~/.dot_files from the host user's own account,
+        # so there is nobody else to ask for: default to personal, no prompt.
+        echo "Running in a container — defaulting to the 'personal' profile. Pass --profile=shared to override."
+        PROFILE="personal"
+    elif [ -t 0 ] && command -v fzf &>/dev/null; then
         PROFILE=$(printf '%s\n' \
             "personal   $PROFILE_DESC_PERSONAL" \
             "shared     $PROFILE_DESC_SHARED" \
@@ -279,9 +284,18 @@ _install_tmux() {
     tmp_dir=$(mktemp -d)
 
     echo "Resolving latest tmux release..."
-    tarball_url=$(curl -fsSL --retry 3 --retry-delay 2 --retry-connrefused \
-        https://api.github.com/repos/tmux/tmux/releases/latest \
-        | python3 -c "import json,sys; d=json.load(sys.stdin); print(next(a['browser_download_url'] for a in d['assets'] if a['name'].endswith('.tar.gz')))" 2>/dev/null)
+    # The /releases/latest redirect is not subject to the 60 req/h anonymous
+    # API limit (a shared IP hit "403" there); the API is only the fallback.
+    local tag
+    tag=$(curl -fsSL --retry 3 --retry-delay 2 -o /dev/null -w '%{url_effective}' \
+        https://github.com/tmux/tmux/releases/latest 2>/dev/null | sed 's#.*/tag/##')
+    if [ -n "$tag" ] && [[ $tag != *"/"* ]]; then
+        tarball_url="https://github.com/tmux/tmux/releases/download/$tag/tmux-$tag.tar.gz"
+    else
+        tarball_url=$(curl -fsSL --retry 3 --retry-delay 2 --retry-connrefused \
+            https://api.github.com/repos/tmux/tmux/releases/latest \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print(next(a['browser_download_url'] for a in d['assets'] if a['name'].endswith('.tar.gz')))" 2>/dev/null)
+    fi
 
     if [ -z "$tarball_url" ]; then
         echo "ERROR: could not resolve latest tmux release tarball." >&2
@@ -308,7 +322,8 @@ if [ -x "$TMUX_LOCAL_BIN" ]; then
     echo "tmux currently installed: $("$TMUX_LOCAL_BIN" -V)"
 fi
 echo "Building latest tmux from source..."
-_install_tmux
+# Not fatal: set -e would otherwise skip every later setup step.
+_install_tmux || echo "WARNING: tmux install failed; keeping the existing tmux." >&2
 
 # ---------------------------------------------------------------------------
 # Node.js — install via nvm if not already present (needed for LSP servers
@@ -598,6 +613,7 @@ SOURCE_LINES=(
     "source \$HOME/.dot_files/bash/alias.sh"
     "source \$HOME/.dot_files/bash/ros2_completion.sh"
     "source \$HOME/.dot_files/bash/bindings.sh"
+    "[ -f /.dockerenv ] || source \"\$HOME/.dot_files/bash/docker_wrapper.sh\""
     "[ -f /.dockerenv ] && [ -d \"\$HOME/.dot_files\" ] && [ ! -L \"\$HOME/.config/nvim\" ] && bash \"\$HOME/.dot_files/bash/setup_dotfiles.sh\""
 )
 
@@ -634,11 +650,5 @@ if [ "$IN_CONTAINER" = false ]; then
     (crontab -l 2>/dev/null | grep -v -F "$CRON_COMMENT" || true; echo "$CRON_COMMENT"; echo "$CRON_JOB") | crontab -
     echo "Cron job installed to update dotfiles daily at 8 AM."
 fi
-
-# ---------------------------------------------------------------------------
-# Patch devi_toolkit.bashrc to mount ~/.dot_files into the dev container
-# ---------------------------------------------------------------------------
-
-bash "$DEST_DIR/bash/tii-dev-scripts/patch_devi_toolkit.sh"
 
 echo "Setup complete! Please restart your terminal or run: source ~/.bashrc"
