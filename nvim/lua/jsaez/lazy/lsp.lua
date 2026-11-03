@@ -123,6 +123,58 @@ config = function()
     return nil
   end
 
+  -- Editor-only fixups applied to a cached copy of compile_commands.json
+  -- (the build's own db is never touched):
+  --  * drop -fopenmp: clangd can't resolve symbols inside `#pragma omp`
+  --    regions (go-to-definition returns "no locations found" there).
+  --  * add -I<root>/include: headers get flags inferred from some .cpp, and
+  --    thirdparty .cpp files often lack the package's own include dir.
+  local function patch_args(args, root_dir)
+    local out = {}
+    for _, a in ipairs(args) do
+      if not (a == "-fopenmp" or a:match("^%-fopenmp=")) then
+        table.insert(out, a)
+      end
+    end
+    local inc = root_dir .. "/include"
+    if vim.fn.isdirectory(inc) == 1 then
+      -- insert before the last arg (the source file)
+      table.insert(out, math.max(#out, 2), "-I" .. inc)
+    end
+    return out
+  end
+
+  local function patched_db_dir(db_dir, root_dir)
+    local src = db_dir .. "/compile_commands.json"
+    local key = (db_dir .. "@" .. root_dir):gsub("[/\\:]", "%%")
+    local dst_dir = vim.fn.stdpath("cache") .. "/clangd-db/" .. key
+    local dst = dst_dir .. "/compile_commands.json"
+    local src_t = vim.fn.getftime(src)
+    if vim.fn.getftime(dst) >= src_t and src_t > 0 then
+      return dst_dir
+    end
+    local ok, db = pcall(function()
+      return vim.json.decode(table.concat(vim.fn.readfile(src), "\n"))
+    end)
+    if not ok or type(db) ~= "table" then
+      return db_dir
+    end
+    for _, e in ipairs(db) do
+      local args = e.arguments
+      if not args and e.command then
+        -- naive split: fine for CMake output (no quoted spaces in flags)
+        args = vim.split(e.command, "%s+", { trimempty = true })
+      end
+      if args then
+        e.arguments = patch_args(args, root_dir)
+        e.command = nil
+      end
+    end
+    vim.fn.mkdir(dst_dir, "p")
+    vim.fn.writefile({ vim.json.encode(db) }, dst)
+    return dst_dir
+  end
+
   vim.api.nvim_create_autocmd("FileType", {
     pattern = { "c", "cpp", "objc", "objcpp", "cuda" },
     callback = function(ev)
@@ -142,6 +194,7 @@ config = function()
       }
       local db_dir = find_compile_commands_dir(root_dir)
       if db_dir then
+        db_dir = patched_db_dir(db_dir, root_dir)
         table.insert(cmd, "--compile-commands-dir=" .. db_dir)
       end
 
