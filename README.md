@@ -52,6 +52,8 @@ The install **profile** defaults to **shared** on NVIDIA Jetson boards and to
 The choice is saved to `~/.dotfiles_profile`; re-run with `--profile=...` to
 change it later.
 
+Add `--dry-run` to preview what the script would do (every change is printed instead of made).
+
 To undo the setup, run `bash ~/.dot_files/bash/uninstall_dotfiles.sh`. It
 removes the symlinks, launchers, xbindkeys/systemd/cron entries, the GNOME
 shortcut change and the lines added to `~/.bash_aliases_local`. Add `--purge`

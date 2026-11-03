@@ -17,6 +17,26 @@ CRON_JOB="0 8 * * * $DEST_DIR/bash/update_dotfiles.sh >/dev/null 2>&1"
 IN_CONTAINER=false
 [ -f /.dockerenv ] && IN_CONTAINER=true
 
+# --dry-run: read-only checks still run (installed versions, latest release
+# tags, what is already linked), but every change is printed instead of made.
+DRY_RUN=false
+for arg in "$@"; do
+    [ "$arg" = "--dry-run" ] && DRY_RUN=true
+done
+
+dry() { [ "$DRY_RUN" = true ]; }
+
+run() {
+    if dry; then
+        echo "[dry-run] $*"
+    else
+        "$@"
+    fi
+}
+
+# Success message for a change; silent in dry-run, where run already printed it.
+did() { dry || echo "$@"; }
+
 # ---------------------------------------------------------------------------
 # Profile — "personal" installs everything as-is. "shared" is for an
 # account/machine used by other people too, and skips the bits they tend not
@@ -70,7 +90,11 @@ case "$PROFILE" in
         ;;
 esac
 
-echo "$PROFILE" > "$PROFILE_FILE"
+if dry; then
+    echo "[dry-run] write '$PROFILE' to $PROFILE_FILE"
+else
+    echo "$PROFILE" > "$PROFILE_FILE"
+fi
 echo "Using profile: $PROFILE (saved to $PROFILE_FILE — re-run with --profile=personal|shared to change)"
 
 # ---------------------------------------------------------------------------
@@ -79,7 +103,7 @@ echo "Using profile: $PROFILE (saved to $PROFILE_FILE — re-run with --profile=
 
 if [ ! -d "$DEST_DIR" ]; then
     echo "Cloning dotfiles repo..."
-    git clone "$REPO_URL" "$DEST_DIR"
+    run git clone "$REPO_URL" "$DEST_DIR"
 else
     echo "Dotfiles repo already exists at $DEST_DIR"
 fi
@@ -98,10 +122,10 @@ apt_install() {
     done
     [ ${#missing[@]} -eq 0 ] && return 0
     if [ "$APT_UPDATED" = false ]; then
-        sudo apt-get update
+        run sudo apt-get update
         APT_UPDATED=true
     fi
-    sudo apt-get install -y "${missing[@]}"
+    run sudo apt-get install -y "${missing[@]}"
 }
 
 # Prints the latest release tag of a GitHub repo. Uses the /releases/latest
@@ -119,22 +143,22 @@ link_config() {
     fi
     if [ -L "$2" ] || [ -e "$2" ]; then
         echo "Removing existing $2"
-        rm -rf "$2"
+        run rm -rf "$2"
     fi
-    ln -s "$1" "$2"
-    echo "Linked $2 -> $1"
+    run ln -s "$1" "$2"
+    did "Linked $2 -> $1"
 }
 
 # ~/.config is guaranteed to exist; create it if running inside a container
 # where the directory may not have been provisioned by Ansible.
-mkdir -p "$HOME/.config"
+run mkdir -p "$HOME/.config"
 
 # ble.sh (and its blerc) is laptop-only — see the Profile section above.
 if [ "$PROFILE" = personal ]; then
-    mkdir -p "$(dirname "$BLERC_TARGET")"
-    [ -L "$BLERC_TARGET" ] || [ -e "$BLERC_TARGET" ] && rm -f "$BLERC_TARGET"
-    ln -sf "$DEST_DIR/bash/blerc" "$BLERC_TARGET"
-    echo "Linked $BLERC_TARGET -> $DEST_DIR/bash/blerc"
+    run mkdir -p "$(dirname "$BLERC_TARGET")"
+    [ -L "$BLERC_TARGET" ] || [ -e "$BLERC_TARGET" ] && run rm -f "$BLERC_TARGET"
+    run ln -sf "$DEST_DIR/bash/blerc" "$BLERC_TARGET"
+    did "Linked $BLERC_TARGET -> $DEST_DIR/bash/blerc"
 fi
 
 link_config "$DEST_DIR/nvim" "$NVIM_TARGET"
@@ -147,12 +171,16 @@ if [ "$IN_CONTAINER" = false ]; then
     # Ghostty's `maximize = true` config is ignored at startup on Linux/GTK
     # (https://github.com/ghostty-org/ghostty/issues/11252), so new windows
     # are maximized externally via a wrapper script + a launcher override.
-    mkdir -p "$HOME/.local/bin" "$HOME/.local/share/applications"
-    chmod +x "$DEST_DIR/ghostty/ghostty-maximized"
-    ln -sf "$DEST_DIR/ghostty/ghostty-maximized" "$HOME/.local/bin/ghostty-maximized"
-    sed "s|@GHOSTTY_MAXIMIZED@|$HOME/.local/bin/ghostty-maximized|g" \
-        "$DEST_DIR/ghostty/ghostty.desktop" > "$HOME/.local/share/applications/com.mitchellh.ghostty.desktop"
-    echo "Installed maximized Ghostty launcher -> $HOME/.local/share/applications/com.mitchellh.ghostty.desktop"
+    run mkdir -p "$HOME/.local/bin" "$HOME/.local/share/applications"
+    run chmod +x "$DEST_DIR/ghostty/ghostty-maximized"
+    run ln -sf "$DEST_DIR/ghostty/ghostty-maximized" "$HOME/.local/bin/ghostty-maximized"
+    if dry; then
+        echo "[dry-run] write Ghostty launcher to $HOME/.local/share/applications/com.mitchellh.ghostty.desktop"
+    else
+        sed "s|@GHOSTTY_MAXIMIZED@|$HOME/.local/bin/ghostty-maximized|g" \
+            "$DEST_DIR/ghostty/ghostty.desktop" > "$HOME/.local/share/applications/com.mitchellh.ghostty.desktop"
+    fi
+    did "Installed maximized Ghostty launcher -> $HOME/.local/share/applications/com.mitchellh.ghostty.desktop"
 
     # GNOME's built-in Ctrl+Alt+T "Launch Terminal" shortcut bypasses the
     # .desktop file entirely and execs org.gnome.desktop.default-applications
@@ -160,8 +188,8 @@ if [ "$IN_CONTAINER" = false ]; then
     # Skipped on "shared" profiles: this is a GNOME-session-wide default that
     # would repoint Ctrl+Alt+T for anyone else using this account too.
     if [ "$PROFILE" = personal ] && command -v gsettings &>/dev/null; then
-        gsettings set org.gnome.desktop.default-applications.terminal exec "$HOME/.local/bin/ghostty-maximized"
-        echo "Pointed GNOME's default terminal (Ctrl+Alt+T) at ghostty-maximized"
+        run gsettings set org.gnome.desktop.default-applications.terminal exec "$HOME/.local/bin/ghostty-maximized"
+        did "Pointed GNOME's default terminal (Ctrl+Alt+T) at ghostty-maximized"
     fi
 fi
 
@@ -181,17 +209,20 @@ fi
 if [ "$IN_CONTAINER" = false ] && [ "$PROFILE" = personal ]; then
     apt_install xbindkeys
 
-    mkdir -p "$HOME/.local/bin" "$HOME/.config/autostart"
-    chmod +x "$DEST_DIR/wm/raise-or-launch.sh"
-    ln -sf "$DEST_DIR/wm/raise-or-launch.sh" "$HOME/.local/bin/raise-or-launch"
+    run mkdir -p "$HOME/.local/bin" "$HOME/.config/autostart"
+    run chmod +x "$DEST_DIR/wm/raise-or-launch.sh"
+    run ln -sf "$DEST_DIR/wm/raise-or-launch.sh" "$HOME/.local/bin/raise-or-launch"
 
-    sed \
-        -e "s|@RAISE_OR_LAUNCH@|$HOME/.local/bin/raise-or-launch|g" \
-        -e "s|@GHOSTTY_MAXIMIZED@|$HOME/.local/bin/ghostty-maximized|g" \
-        "$DEST_DIR/wm/xbindkeysrc" > "$HOME/.xbindkeysrc"
-    echo "Installed $HOME/.xbindkeysrc"
+    if dry; then
+        echo "[dry-run] write $HOME/.xbindkeysrc and $HOME/.config/autostart/xbindkeys.desktop"
+    else
+        sed \
+            -e "s|@RAISE_OR_LAUNCH@|$HOME/.local/bin/raise-or-launch|g" \
+            -e "s|@GHOSTTY_MAXIMIZED@|$HOME/.local/bin/ghostty-maximized|g" \
+            "$DEST_DIR/wm/xbindkeysrc" > "$HOME/.xbindkeysrc"
+        echo "Installed $HOME/.xbindkeysrc"
 
-    cat > "$HOME/.config/autostart/xbindkeys.desktop" <<EOF
+        cat > "$HOME/.config/autostart/xbindkeys.desktop" <<EOF
 [Desktop Entry]
 Type=Application
 Name=xbindkeys
@@ -199,12 +230,13 @@ Comment=Custom X11 keybindings (managed by ~/.dot_files/wm)
 Exec=xbindkeys -n
 X-GNOME-Autostart-enabled=true
 EOF
-    echo "Installed $HOME/.config/autostart/xbindkeys.desktop"
+        echo "Installed $HOME/.config/autostart/xbindkeys.desktop"
+    fi
 
     if command -v xbindkeys &>/dev/null && [ -n "${DISPLAY:-}" ]; then
-        killall xbindkeys 2>/dev/null
-        xbindkeys
-        echo "Restarted xbindkeys with the new config"
+        run killall xbindkeys 2>/dev/null
+        run xbindkeys
+        did "Restarted xbindkeys with the new config"
     fi
 fi
 
@@ -257,7 +289,7 @@ if [ -x "$NVIM_LOCAL_BIN" ] && [ -n "$NVIM_LATEST_TAG" ] \
     echo "nvim already up to date ($NVIM_LATEST_TAG)"
 else
     echo "Installing latest nvim release from GitHub..."
-    _install_nvim
+    run _install_nvim
 fi
 
 # ---------------------------------------------------------------------------
@@ -322,7 +354,7 @@ if [ -x "$TMUX_LOCAL_BIN" ] && [ -n "$TMUX_LATEST_TAG" ] \
 else
     echo "Building latest tmux from source..."
     # Not fatal: set -e would otherwise skip every later setup step.
-    _install_tmux || echo "WARNING: tmux install failed; keeping the existing tmux." >&2
+    run _install_tmux || echo "WARNING: tmux install failed; keeping the existing tmux." >&2
 fi
 
 # ---------------------------------------------------------------------------
@@ -353,7 +385,7 @@ if command -v node &>/dev/null; then
     echo "node already installed: $(node --version)"
 else
     echo "node not found — installing via nvm..."
-    _install_node
+    run _install_node
 fi
 
 # ---------------------------------------------------------------------------
@@ -370,7 +402,7 @@ if command -v tree-sitter &>/dev/null; then
     echo "tree-sitter-cli already installed"
 elif command -v npm &>/dev/null; then
     echo "Installing tree-sitter-cli..."
-    npm install -g tree-sitter-cli
+    run npm install -g tree-sitter-cli
 else
     echo "WARNING: npm not available — skipping tree-sitter-cli"
 fi
@@ -407,10 +439,10 @@ FZF_TAB_COMPLETION_DIR="$DEST_DIR/bash/fzf-tab-completion"
 
 if [ -d "$FZF_TAB_COMPLETION_DIR" ]; then
     echo "Updating fzf-tab-completion..."
-    git -C "$FZF_TAB_COMPLETION_DIR" pull --ff-only
+    run git -C "$FZF_TAB_COMPLETION_DIR" pull --ff-only
 else
     echo "Cloning fzf-tab-completion..."
-    git clone https://github.com/lincheney/fzf-tab-completion "$FZF_TAB_COMPLETION_DIR"
+    run git clone https://github.com/lincheney/fzf-tab-completion "$FZF_TAB_COMPLETION_DIR"
 fi
 
 # ---------------------------------------------------------------------------
@@ -443,7 +475,9 @@ _install_blesh() {
 if [ "$PROFILE" = personal ]; then
     if [ -f "$HOME/.local/share/blesh/ble.sh" ]; then
         echo "ble.sh already installed"
-        if [ -d "$BLE_SH_DIR" ]; then
+        if dry; then
+            echo "[dry-run] would pull ble.sh updates and rebuild if anything changed"
+        elif [ -d "$BLE_SH_DIR" ]; then
             echo "Pulling ble.sh updates..."
             ble_before=$(git -C "$BLE_SH_DIR" rev-parse HEAD)
             git -C "$BLE_SH_DIR" pull --ff-only
@@ -455,7 +489,7 @@ if [ "$PROFILE" = personal ]; then
             fi
         fi
     else
-        _install_blesh
+        run _install_blesh
     fi
 fi
 
@@ -503,7 +537,7 @@ if [ "$IN_CONTAINER" = false ]; then
         echo "ghostty already installed: $(ghostty --version)"
     else
         echo "ghostty not found — building from source..."
-        _install_ghostty
+        run _install_ghostty
     fi
 fi
 
@@ -513,7 +547,9 @@ fi
 # ---------------------------------------------------------------------------
 
 LAZY_LOCK="$DEST_DIR/nvim/lazy-lock.json"
-if [ -f "$LAZY_LOCK" ] && command -v python3 &>/dev/null; then
+if dry; then
+    echo "[dry-run] would remove the snacks.nvim pin from $LAZY_LOCK"
+elif [ -f "$LAZY_LOCK" ] && command -v python3 &>/dev/null; then
     python3 -c "
 import json
 path = '$LAZY_LOCK'
@@ -537,7 +573,9 @@ fi
 # Failure here is non-fatal: lazy will just install on first launch instead.
 # ---------------------------------------------------------------------------
 
-if [ -x "$NVIM_LOCAL_BIN" ]; then
+if dry; then
+    echo "[dry-run] would pre-install nvim plugins (lazy.nvim)"
+elif [ -x "$NVIM_LOCAL_BIN" ]; then
     echo "Pre-installing nvim plugins (lazy.nvim)..."
     if timeout 600 "$NVIM_LOCAL_BIN" --headless "+Lazy! install" +qa; then
         echo "nvim plugins installed."
@@ -587,8 +625,12 @@ for line in "${REMOVE_LINES[@]}"; do
         # over it fails with "Device or resource busy" -- rename(2) can't
         # replace an active mount point. Write into the existing inode
         # instead of replacing it.
-        grep -Fxv "$line" "$BASHRC" > "${BASHRC}.tmp" && cat "${BASHRC}.tmp" > "$BASHRC" && rm -f "${BASHRC}.tmp"
-        echo "Removed from $BASHRC: $line"
+        if dry; then
+            echo "[dry-run] remove from $BASHRC: $line"
+        else
+            grep -Fxv "$line" "$BASHRC" > "${BASHRC}.tmp" && cat "${BASHRC}.tmp" > "$BASHRC" && rm -f "${BASHRC}.tmp"
+            echo "Removed from $BASHRC: $line"
+        fi
     fi
 done
 
@@ -609,8 +651,12 @@ SOURCE_LINES=(
 
 for line in "${SOURCE_LINES[@]}"; do
     if ! grep -Fxq "$line" "$BASHRC" 2>/dev/null; then
-        echo "$line" >> "$BASHRC"
-        echo "Added to $BASHRC: $line"
+        if dry; then
+            echo "[dry-run] add to $BASHRC: $line"
+        else
+            echo "$line" >> "$BASHRC"
+            echo "Added to $BASHRC: $line"
+        fi
     else
         echo "Already in $BASHRC: $line"
     fi
@@ -623,13 +669,13 @@ done
 # ---------------------------------------------------------------------------
 
 if [ "$IN_CONTAINER" = false ]; then
-    chmod +x "$DEST_DIR/bash/link_ssd_bags.sh"
-    mkdir -p "$HOME/.config/systemd/user"
-    ln -sf "$DEST_DIR/systemd/ssd-bags-symlink.timer" "$HOME/.config/systemd/user/ssd-bags-symlink.timer"
-    ln -sf "$DEST_DIR/systemd/ssd-bags-symlink.service" "$HOME/.config/systemd/user/ssd-bags-symlink.service"
-    systemctl --user daemon-reload
-    systemctl --user enable --now ssd-bags-symlink.timer
-    echo "Enabled ssd-bags-symlink.timer — ~/indoor_uav/bags will auto-relink to the SSD within ~20s of javier_ssd being mounted."
+    run chmod +x "$DEST_DIR/bash/link_ssd_bags.sh"
+    run mkdir -p "$HOME/.config/systemd/user"
+    run ln -sf "$DEST_DIR/systemd/ssd-bags-symlink.timer" "$HOME/.config/systemd/user/ssd-bags-symlink.timer"
+    run ln -sf "$DEST_DIR/systemd/ssd-bags-symlink.service" "$HOME/.config/systemd/user/ssd-bags-symlink.service"
+    run systemctl --user daemon-reload
+    run systemctl --user enable --now ssd-bags-symlink.timer
+    did "Enabled ssd-bags-symlink.timer — ~/indoor_uav/bags will auto-relink to the SSD within ~20s of javier_ssd being mounted."
 fi
 
 # ---------------------------------------------------------------------------
@@ -637,8 +683,16 @@ fi
 # ---------------------------------------------------------------------------
 
 if [ "$IN_CONTAINER" = false ]; then
-    (crontab -l 2>/dev/null | grep -v -F "$CRON_COMMENT" || true; echo "$CRON_COMMENT"; echo "$CRON_JOB") | crontab -
-    echo "Cron job installed to update dotfiles daily at 8 AM."
+    if dry; then
+        echo "[dry-run] install cron job: $CRON_JOB"
+    else
+        (crontab -l 2>/dev/null | grep -v -F "$CRON_COMMENT" || true; echo "$CRON_COMMENT"; echo "$CRON_JOB") | crontab -
+    fi
+    did "Cron job installed to update dotfiles daily at 8 AM."
 fi
 
-echo "Setup complete! Please restart your terminal or run: source ~/.bashrc"
+if dry; then
+    echo "Dry run complete — nothing was changed."
+else
+    echo "Setup complete! Please restart your terminal or run: source ~/.bashrc"
+fi
