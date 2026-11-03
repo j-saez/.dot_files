@@ -32,8 +32,9 @@ git submodule update --init --recursive
 bash ~/.dot_files/bash/setup_dotfiles.sh
 ```
 
-You'll be asked to pick an install **profile** the first time (skip the
-prompt with `--profile=personal` or `--profile=shared`):
+The install **profile** defaults to **shared** on NVIDIA Jetson boards and to
+**personal** everywhere else, with no prompt (override with
+`--profile=personal` or `--profile=shared`):
 
 - **personal** — your own machine, installs everything as described below.
 - **shared** — an account/computer other people use too. nvim and tmux are
@@ -48,11 +49,14 @@ prompt with `--profile=personal` or `--profile=shared`):
     as default terminal) are skipped, since they'd affect anyone else on
     that account
 
-Pick a profile with the fzf picker when running interactively (falls back to
-a numbered prompt if `fzf` isn't installed yet).
-
 The choice is saved to `~/.dotfiles_profile`; re-run with `--profile=...` to
 change it later.
+
+To undo the setup, run `bash ~/.dot_files/bash/uninstall_dotfiles.sh`. It
+removes the symlinks, launchers, xbindkeys/systemd/cron entries, the GNOME
+shortcut change and the lines added to `~/.bash_aliases_local`. Add `--purge`
+to also delete the installed nvim, tmux, ble.sh, ghostty and `~/.nvm`, and
+`--dry-run` to preview. apt packages and `~/.dot_files` itself are left alone.
 
 The script will automatically:
 

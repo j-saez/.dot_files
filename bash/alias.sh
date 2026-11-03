@@ -323,6 +323,8 @@ function claude_init() {
 }
 
 alias cinit='claude_init'
+alias jsaez-install='bash $HOME/.dot_files/bash/setup_dotfiles.sh'
+alias jsaez-uninstall='bash $HOME/.dot_files/bash/uninstall_dotfiles.sh'
 
 alias devi='fzf_devi_selector'
 alias devi-='fzf_devi_selector'
