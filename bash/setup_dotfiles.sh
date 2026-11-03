@@ -27,15 +27,19 @@ IN_CONTAINER=false
 # as default terminal). nvim and tmux configs are still installed as the
 # default in both profiles.
 #
-# The choice is saved to PROFILE_FILE so re-running the script (e.g. the
-# container auto-setup hook in ~/.bash_aliases_local) doesn't re-prompt; pass
+# The profile defaults to "shared" on NVIDIA Jetson boards (which are used by
+# the whole team) and to "personal" everywhere else, without prompting. The
+# choice is saved to PROFILE_FILE so re-running the script (e.g. the container
+# auto-setup hook in ~/.bash_aliases_local) keeps it; pass
 # --profile=personal|shared explicitly to change it later.
 # ---------------------------------------------------------------------------
 
 PROFILE_FILE="$HOME/.dotfiles_profile"
 PROFILE=""
-PROFILE_DESC_PERSONAL="your own machine — install everything"
-PROFILE_DESC_SHARED="an account/computer other people use too (skips ble.sh, fzf Tab/Ctrl+R, the tmux picker default, and the WM/GNOME shortcut changes)"
+
+_is_jetson() {
+    [ -f /etc/nv_tegra_release ] || grep -qa tegra /proc/device-tree/compatible 2>/dev/null
+}
 
 for arg in "$@"; do
     case "$arg" in
@@ -50,29 +54,10 @@ if [ -z "$PROFILE" ] && [ -f "$PROFILE_FILE" ]; then
 fi
 
 if [ -z "$PROFILE" ]; then
-    if [ "$IN_CONTAINER" = true ]; then
-        # The container mounts ~/.dot_files from the host user's own account,
-        # so there is nobody else to ask for: default to personal, no prompt.
-        echo "Running in a container — defaulting to the 'personal' profile. Pass --profile=shared to override."
-        PROFILE="personal"
-    elif [ -t 0 ] && command -v fzf &>/dev/null; then
-        PROFILE=$(printf '%s\n' \
-            "personal   $PROFILE_DESC_PERSONAL" \
-            "shared     $PROFILE_DESC_SHARED" \
-            | fzf --reverse --header "Select install profile (Esc = personal):" --bind 'ctrl-j:down,ctrl-k:up' \
-            | awk '{print $1}') || true
-        [ -z "$PROFILE" ] && PROFILE="personal"
-    elif [ -t 0 ]; then
-        echo "Which install profile is this machine?"
-        echo "  1) personal — $PROFILE_DESC_PERSONAL"
-        echo "  2) shared   — $PROFILE_DESC_SHARED"
-        read -rp "Select [1/2, default 1]: " _profile_choice || true
-        case "$_profile_choice" in
-            2) PROFILE="shared" ;;
-            *) PROFILE="personal" ;;
-        esac
+    if [ "$IN_CONTAINER" = false ] && _is_jetson; then
+        echo "Jetson board detected — defaulting to the 'shared' profile. Pass --profile=personal to override."
+        PROFILE="shared"
     else
-        echo "No --profile given and not running interactively — defaulting to 'personal'. Pass --profile=shared to opt into the shared-machine profile."
         PROFILE="personal"
     fi
 fi
@@ -103,6 +88,43 @@ fi
 # Symlinks
 # ---------------------------------------------------------------------------
 
+# Installs only the packages that are missing, and refreshes the apt index
+# at most once per run (and not at all when everything is already present).
+APT_UPDATED=false
+apt_install() {
+    local missing=() pkg
+    for pkg in "$@"; do
+        dpkg -s "$pkg" &>/dev/null || missing+=("$pkg")
+    done
+    [ ${#missing[@]} -eq 0 ] && return 0
+    if [ "$APT_UPDATED" = false ]; then
+        sudo apt-get update
+        APT_UPDATED=true
+    fi
+    sudo apt-get install -y "${missing[@]}"
+}
+
+# Prints the latest release tag of a GitHub repo. Uses the /releases/latest
+# redirect, which is not subject to the anonymous API rate limit.
+latest_release_tag() {
+    curl -fsSL --retry 3 --retry-delay 2 -o /dev/null -w '%{url_effective}' \
+        "https://github.com/$1/releases/latest" 2>/dev/null | sed 's#.*/tag/##'
+}
+
+# Points $2 at $1, doing nothing if it already is.
+link_config() {
+    if [ "$(readlink "$2")" = "$1" ]; then
+        echo "Already linked $2 -> $1"
+        return
+    fi
+    if [ -L "$2" ] || [ -e "$2" ]; then
+        echo "Removing existing $2"
+        rm -rf "$2"
+    fi
+    ln -s "$1" "$2"
+    echo "Linked $2 -> $1"
+}
+
 # ~/.config is guaranteed to exist; create it if running inside a container
 # where the directory may not have been provisioned by Ansible.
 mkdir -p "$HOME/.config"
@@ -115,28 +137,12 @@ if [ "$PROFILE" = personal ]; then
     echo "Linked $BLERC_TARGET -> $DEST_DIR/bash/blerc"
 fi
 
-if [ -L "$NVIM_TARGET" ] || [ -e "$NVIM_TARGET" ]; then
-    echo "Removing existing $NVIM_TARGET"
-    rm -rf "$NVIM_TARGET"
-fi
-ln -s "$DEST_DIR/nvim" "$NVIM_TARGET"
-echo "Linked $NVIM_TARGET -> $DEST_DIR/nvim"
-
-if [ -L "$TMUX_TARGET" ] || [ -e "$TMUX_TARGET" ]; then
-    echo "Removing existing $TMUX_TARGET"
-    rm -rf "$TMUX_TARGET"
-fi
-ln -s "$DEST_DIR/tmux" "$TMUX_TARGET"
-echo "Linked $TMUX_TARGET -> $DEST_DIR/tmux"
+link_config "$DEST_DIR/nvim" "$NVIM_TARGET"
+link_config "$DEST_DIR/tmux" "$TMUX_TARGET"
 
 # Ghostty is a host-only terminal emulator; skip the symlink inside containers.
 if [ "$IN_CONTAINER" = false ]; then
-    if [ -L "$GHOSTTY_TARGET" ] || [ -e "$GHOSTTY_TARGET" ]; then
-        echo "Removing existing $GHOSTTY_TARGET"
-        rm -rf "$GHOSTTY_TARGET"
-    fi
-    ln -s "$DEST_DIR/ghostty" "$GHOSTTY_TARGET"
-    echo "Linked $GHOSTTY_TARGET -> $DEST_DIR/ghostty"
+    link_config "$DEST_DIR/ghostty" "$GHOSTTY_TARGET"
 
     # Ghostty's `maximize = true` config is ignored at startup on Linux/GTK
     # (https://github.com/ghostty-org/ghostty/issues/11252), so new windows
@@ -160,14 +166,6 @@ if [ "$IN_CONTAINER" = false ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# apt — refresh the package index once so the `apt install` calls below can
-# find packages (container images ship with an empty/stale index to keep
-# them small, e.g. the "Unable to locate package" errors this used to hit).
-# ---------------------------------------------------------------------------
-
-sudo apt-get update
-
-# ---------------------------------------------------------------------------
 # wm — Right Alt+1 / Right Alt+2 raise-or-launch Ghostty / Chrome.
 #
 # GNOME's built-in custom-keybinding accelerator format has no name for Mod5
@@ -181,12 +179,7 @@ sudo apt-get update
 # ---------------------------------------------------------------------------
 
 if [ "$IN_CONTAINER" = false ] && [ "$PROFILE" = personal ]; then
-    if command -v xbindkeys &>/dev/null; then
-        echo "xbindkeys already installed"
-    else
-        echo "xbindkeys not found — installing..."
-        sudo apt install -y xbindkeys
-    fi
+    apt_install xbindkeys
 
     mkdir -p "$HOME/.local/bin" "$HOME/.config/autostart"
     chmod +x "$DEST_DIR/wm/raise-or-launch.sh"
@@ -258,11 +251,14 @@ _install_nvim() {
 }
 
 NVIM_LOCAL_BIN="$HOME/.local/bin/nvim"
-if [ -x "$NVIM_LOCAL_BIN" ]; then
-    echo "nvim currently installed: $("$NVIM_LOCAL_BIN" --version | head -1)"
+NVIM_LATEST_TAG=$(latest_release_tag neovim/neovim)
+if [ -x "$NVIM_LOCAL_BIN" ] && [ -n "$NVIM_LATEST_TAG" ] \
+    && [ "$("$NVIM_LOCAL_BIN" --version | head -1)" = "NVIM $NVIM_LATEST_TAG" ]; then
+    echo "nvim already up to date ($NVIM_LATEST_TAG)"
+else
+    echo "Installing latest nvim release from GitHub..."
+    _install_nvim
 fi
-echo "Installing latest nvim release from GitHub..."
-_install_nvim
 
 # ---------------------------------------------------------------------------
 # tmux — built from source (both profiles), always rebuilt against the latest
@@ -272,12 +268,11 @@ _install_nvim
 # `configure`, avoiding an autoconf/automake/pkg-config dependency.
 # ---------------------------------------------------------------------------
 
-echo "Installing tmux build dependencies..."
 # bison provides yacc, which configure hard-requires to (re)generate the
 # cmd-parse.y grammar -- missing on machines that never had other build
 # tooling installed on them before (confirmed failure: "configure: error:
 # 'yacc not found'" on a bare shared machine).
-sudo apt-get install -y libevent-dev libncurses-dev pkg-config build-essential bison
+TMUX_BUILD_DEPS=(libevent-dev libncurses-dev pkg-config build-essential bison)
 
 _install_tmux() {
     local tmp_dir tarball_url
@@ -287,8 +282,7 @@ _install_tmux() {
     # The /releases/latest redirect is not subject to the 60 req/h anonymous
     # API limit (a shared IP hit "403" there); the API is only the fallback.
     local tag
-    tag=$(curl -fsSL --retry 3 --retry-delay 2 -o /dev/null -w '%{url_effective}' \
-        https://github.com/tmux/tmux/releases/latest 2>/dev/null | sed 's#.*/tag/##')
+    tag=$(latest_release_tag tmux/tmux)
     if [ -n "$tag" ] && [[ $tag != *"/"* ]]; then
         tarball_url="https://github.com/tmux/tmux/releases/download/$tag/tmux-$tag.tar.gz"
     else
@@ -302,6 +296,9 @@ _install_tmux() {
         rm -rf "$tmp_dir"
         return 1
     fi
+
+    echo "Installing tmux build dependencies..."
+    apt_install "${TMUX_BUILD_DEPS[@]}"
 
     echo "Downloading tmux source ($tarball_url)..."
     if curl -fL --retry 3 --retry-delay 2 --retry-connrefused "$tarball_url" -o "$tmp_dir/tmux.tar.gz"; then
@@ -318,12 +315,15 @@ _install_tmux() {
 }
 
 TMUX_LOCAL_BIN="$HOME/.local/bin/tmux"
-if [ -x "$TMUX_LOCAL_BIN" ]; then
-    echo "tmux currently installed: $("$TMUX_LOCAL_BIN" -V)"
+TMUX_LATEST_TAG=$(latest_release_tag tmux/tmux)
+if [ -x "$TMUX_LOCAL_BIN" ] && [ -n "$TMUX_LATEST_TAG" ] \
+    && [ "$("$TMUX_LOCAL_BIN" -V)" = "tmux $TMUX_LATEST_TAG" ]; then
+    echo "tmux already up to date ($TMUX_LATEST_TAG)"
+else
+    echo "Building latest tmux from source..."
+    # Not fatal: set -e would otherwise skip every later setup step.
+    _install_tmux || echo "WARNING: tmux install failed; keeping the existing tmux." >&2
 fi
-echo "Building latest tmux from source..."
-# Not fatal: set -e would otherwise skip every later setup step.
-_install_tmux || echo "WARNING: tmux install failed; keeping the existing tmux." >&2
 
 # ---------------------------------------------------------------------------
 # Node.js — install via nvm if not already present (needed for LSP servers
@@ -383,31 +383,21 @@ if command -v rg &>/dev/null; then
     echo "ripgrep already installed: $(rg --version | head -1)"
 else
     echo "ripgrep not found — installing latest stable version..."
-    sudo apt install ripgrep
+    apt_install ripgrep
 fi
 
 # ---------------------------------------------------------------------------
 # bash-completion — completion data for 200+ commands (git, docker, etc.)
 # ---------------------------------------------------------------------------
 
-if dpkg -s bash-completion &>/dev/null 2>&1; then
-    echo "bash-completion already installed"
-else
-    echo "Installing bash-completion..."
-    sudo apt install -y bash-completion
-fi
+apt_install bash-completion
 
 # ---------------------------------------------------------------------------
 # python3-venv — mason.nvim installs pip-based tools (black, clang-format,
 # debugpy) into their own venvs, which fails without it.
 # ---------------------------------------------------------------------------
 
-if dpkg -s python3-venv &>/dev/null 2>&1; then
-    echo "python3-venv already installed"
-else
-    echo "Installing python3-venv..."
-    sudo apt install -y python3-venv
-fi
+apt_install python3-venv
 
 # ---------------------------------------------------------------------------
 # fzf-tab-completion — battle-tested fzf-powered tab completion for bash
@@ -432,8 +422,7 @@ fi
 BLE_SH_DIR="$DEST_DIR/bash/ble.sh"
 
 _install_blesh() {
-    echo "Installing ble.sh build dependency: gawk..."
-    sudo apt install -y gawk
+    apt_install gawk
     if [ -d "$BLE_SH_DIR" ]; then
         # Already checked out -- e.g. ~/.dot_files is bind-mounted from the
         # host into a devcontainer, where it's already cloned there. `git
@@ -456,9 +445,14 @@ if [ "$PROFILE" = personal ]; then
         echo "ble.sh already installed"
         if [ -d "$BLE_SH_DIR" ]; then
             echo "Pulling ble.sh updates..."
+            ble_before=$(git -C "$BLE_SH_DIR" rev-parse HEAD)
             git -C "$BLE_SH_DIR" pull --ff-only
-            git -C "$BLE_SH_DIR" submodule update --init --recursive
-            make -C "$BLE_SH_DIR" install PREFIX="$HOME/.local"
+            if [ "$(git -C "$BLE_SH_DIR" rev-parse HEAD)" != "$ble_before" ]; then
+                git -C "$BLE_SH_DIR" submodule update --init --recursive
+                make -C "$BLE_SH_DIR" install PREFIX="$HOME/.local"
+            else
+                echo "ble.sh already up to date"
+            fi
         fi
     else
         _install_blesh
@@ -478,11 +472,7 @@ _install_ghostty() {
     tmp_dir=$(mktemp -d)
 
     echo "Installing ghostty dependencies..."
-    sudo apt install -y \
-        libgtk-4-dev \
-        libadwaita-1-dev \
-        gettext \
-        libxml2-utils
+    apt_install libgtk-4-dev libadwaita-1-dev gettext libxml2-utils
 
     # gtk4-layer-shell is not packaged for Ubuntu 24.04, so we build it from source
     # by passing -fno-sys=gtk4-layer-shell to zig build
