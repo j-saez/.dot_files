@@ -201,10 +201,18 @@ function fzf_colcon_worktree() {
     fi
 
     # One line per worktree: "<state>\t<branch>\t<path>" (state is coloured)
-    local branch state lines=""
+    local branch sha state lines=""
     while IFS= read -r wt; do
         branch=$(git -C "$wt" branch --show-current 2>/dev/null)
-        [ -z "$branch" ] && branch="(detached/unknown: $(basename "$wt"))"
+        if [ -z "$branch" ]; then
+            # Empty branch = detached HEAD *or* git failing (e.g. a .git file
+            # pointing at a host path that doesn't exist in the container).
+            if sha=$(git -C "$wt" rev-parse --short HEAD 2>/dev/null); then
+                branch="(detached @ $sha: $(basename "$wt"))"
+            else
+                branch="(git error: $(basename "$wt"), see 'git -C $wt status')"
+            fi
+        fi
         if [ -e "$wt/COLCON_IGNORE" ]; then state=$'\e[31mignored\e[0m'; else state=$'\e[32mACTIVE \e[0m'; fi
         lines+="$state"$'\t'"$branch"$'\t'"$wt"$'\n'
     done <<< "$members"
