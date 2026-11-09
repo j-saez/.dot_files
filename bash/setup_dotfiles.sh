@@ -61,12 +61,14 @@ _is_jetson() {
     [ -f /etc/nv_tegra_release ] || grep -qa tegra /proc/device-tree/compatible 2>/dev/null
 }
 
-for arg in "$@"; do
-    case "$arg" in
-        --profile=*) PROFILE="${arg#*=}" ;;
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --profile=*) PROFILE="${1#*=}" ;;
+        --profile) PROFILE="${2:-}"; shift ;;   # also accept `--profile shared`
         --personal) PROFILE="personal" ;;
         --shared) PROFILE="shared" ;;
     esac
+    shift
 done
 
 if [ -z "$PROFILE" ] && [ -f "$PROFILE_FILE" ]; then
@@ -96,6 +98,35 @@ else
     echo "$PROFILE" > "$PROFILE_FILE"
 fi
 echo "Using profile: $PROFILE (saved to $PROFILE_FILE — re-run with --profile=personal|shared to change)"
+
+# ---------------------------------------------------------------------------
+# Optional components — ask (fzf) whether to install tmux, then nvim.
+# Falls back to a y/n prompt without fzf, and to "yes" when not interactive
+# (e.g. the container auto-run) so unattended runs behave as before.
+# Skipping a component leaves any existing install/config untouched.
+# ---------------------------------------------------------------------------
+
+ask_install() {
+    local name="$1" choice
+    if [ -t 0 ] && [ -t 1 ] && command -v fzf &>/dev/null; then
+        # Esc / Ctrl-C makes fzf fail: treat as "No".
+        choice=$(printf 'Yes\nNo\n' | fzf --reverse --height 20% \
+            --header "Install $name? (Enter to select, Esc = No)") || choice=No
+        [ "$choice" = Yes ]
+    elif [ -t 0 ]; then
+        local answer
+        read -r -p "Install $name? (y/n): " answer
+        [ "$answer" = y ] || [ "$answer" = Y ]
+    else
+        return 0
+    fi
+}
+
+INSTALL_TMUX=false
+INSTALL_NVIM=false
+ask_install tmux && INSTALL_TMUX=true
+ask_install nvim && INSTALL_NVIM=true
+echo "Install tmux: $INSTALL_TMUX, nvim: $INSTALL_NVIM"
 
 # ---------------------------------------------------------------------------
 # Repo
@@ -161,8 +192,8 @@ if [ "$PROFILE" = personal ]; then
     did "Linked $BLERC_TARGET -> $DEST_DIR/bash/blerc"
 fi
 
-link_config "$DEST_DIR/nvim" "$NVIM_TARGET"
-link_config "$DEST_DIR/tmux" "$TMUX_TARGET"
+if [ "$INSTALL_NVIM" = true ]; then link_config "$DEST_DIR/nvim" "$NVIM_TARGET"; fi
+if [ "$INSTALL_TMUX" = true ]; then link_config "$DEST_DIR/tmux" "$TMUX_TARGET"; fi
 
 # Ghostty is a host-only terminal emulator; skip the symlink inside containers.
 if [ "$IN_CONTAINER" = false ]; then
@@ -284,7 +315,9 @@ _install_nvim() {
 
 NVIM_LOCAL_BIN="$HOME/.local/bin/nvim"
 NVIM_LATEST_TAG=$(latest_release_tag neovim/neovim)
-if [ -x "$NVIM_LOCAL_BIN" ] && [ -n "$NVIM_LATEST_TAG" ] \
+if [ "$INSTALL_NVIM" = false ]; then
+    echo "Skipping nvim install"
+elif [ -x "$NVIM_LOCAL_BIN" ] && [ -n "$NVIM_LATEST_TAG" ] \
     && [ "$("$NVIM_LOCAL_BIN" --version | head -1)" = "NVIM $NVIM_LATEST_TAG" ]; then
     echo "nvim already up to date ($NVIM_LATEST_TAG)"
 else
@@ -348,7 +381,9 @@ _install_tmux() {
 
 TMUX_LOCAL_BIN="$HOME/.local/bin/tmux"
 TMUX_LATEST_TAG=$(latest_release_tag tmux/tmux)
-if [ -x "$TMUX_LOCAL_BIN" ] && [ -n "$TMUX_LATEST_TAG" ] \
+if [ "$INSTALL_TMUX" = false ]; then
+    echo "Skipping tmux install"
+elif [ -x "$TMUX_LOCAL_BIN" ] && [ -n "$TMUX_LATEST_TAG" ] \
     && [ "$("$TMUX_LOCAL_BIN" -V)" = "tmux $TMUX_LATEST_TAG" ]; then
     echo "tmux already up to date ($TMUX_LATEST_TAG)"
 else
@@ -438,8 +473,16 @@ apt_install python3-venv
 FZF_TAB_COMPLETION_DIR="$DEST_DIR/bash/fzf-tab-completion"
 
 if [ -d "$FZF_TAB_COMPLETION_DIR" ]; then
-    echo "Updating fzf-tab-completion..."
-    run git -C "$FZF_TAB_COMPLETION_DIR" pull --ff-only
+    # As a submodule it sits on a detached HEAD pinned by the parent repo (and
+    # carries a local patch), so `git pull` has nothing to follow: leave it to
+    # `git submodule update`. Never fatal — set -e would abort the whole setup.
+    if git -C "$FZF_TAB_COMPLETION_DIR" symbolic-ref -q HEAD &>/dev/null; then
+        echo "Updating fzf-tab-completion..."
+        run git -C "$FZF_TAB_COMPLETION_DIR" pull --ff-only \
+            || echo "WARNING: fzf-tab-completion update failed; keeping the current version." >&2
+    else
+        echo "fzf-tab-completion is pinned by the dotfiles repo (detached HEAD); skipping update"
+    fi
 else
     echo "Cloning fzf-tab-completion..."
     run git clone https://github.com/lincheney/fzf-tab-completion "$FZF_TAB_COMPLETION_DIR"
@@ -547,7 +590,9 @@ fi
 # ---------------------------------------------------------------------------
 
 LAZY_LOCK="$DEST_DIR/nvim/lazy-lock.json"
-if dry; then
+if [ "$INSTALL_NVIM" = false ]; then
+    :
+elif dry; then
     echo "[dry-run] would remove the snacks.nvim pin from $LAZY_LOCK"
 elif [ -f "$LAZY_LOCK" ] && command -v python3 &>/dev/null; then
     python3 -c "
@@ -573,7 +618,9 @@ fi
 # Failure here is non-fatal: lazy will just install on first launch instead.
 # ---------------------------------------------------------------------------
 
-if dry; then
+if [ "$INSTALL_NVIM" = false ]; then
+    :
+elif dry; then
     echo "[dry-run] would pre-install nvim plugins (lazy.nvim)"
 elif [ -x "$NVIM_LOCAL_BIN" ]; then
     echo "Pre-installing nvim plugins (lazy.nvim)..."
