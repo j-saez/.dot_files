@@ -3,14 +3,16 @@
 # Get a list of all active tmux sessions
 sessions=$(tmux list-sessions -F "#S")
 
-# Check if there are no active sessions
-if [ -z "$sessions" ]; then
-  echo "No active tmux sessions found."
-  exit 0
-fi
+NEW_ENTRY="[+] New session"
 
-# Use fzf to select a session
-selected_session=$(echo "$sessions" | fzf --preview "tmux list-windows -t {}" --reverse)
+# Use fzf to select a session (or the "new session" entry)
+selected_session=$( { echo "$NEW_ENTRY"; echo "$sessions"; } | fzf --reverse \
+  --preview "[ {} = '$NEW_ENTRY' ] && echo 'Create a new session' || tmux list-windows -t {}")
+
+# Create a new session if requested
+if [ "$selected_session" = "$NEW_ENTRY" ]; then
+  exec "$(dirname "$0")/tmux_new_session_popup"
+fi
 
 # Check if a session was selected
 if [ -n "$selected_session" ]; then
