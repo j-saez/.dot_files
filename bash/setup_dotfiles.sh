@@ -585,33 +585,6 @@ if [ "$IN_CONTAINER" = false ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# snacks.nvim — remove stale lock-file pin so Lazy fetches a version that
-# includes the fix for the 'fg' nil healthcheck error.
-# ---------------------------------------------------------------------------
-
-LAZY_LOCK="$DEST_DIR/nvim/lazy-lock.json"
-if [ "$INSTALL_NVIM" = false ]; then
-    :
-elif dry; then
-    echo "[dry-run] would remove the snacks.nvim pin from $LAZY_LOCK"
-elif [ -f "$LAZY_LOCK" ] && command -v python3 &>/dev/null; then
-    python3 -c "
-import json
-path = '$LAZY_LOCK'
-with open(path) as f:
-    lock = json.load(f)
-if 'snacks.nvim' in lock:
-    del lock['snacks.nvim']
-    with open(path, 'w') as f:
-        json.dump(lock, f, indent=2)
-        f.write('\n')
-    print('Removed snacks.nvim pin — Lazy will fetch latest on next nvim start')
-else:
-    print('snacks.nvim already unpinned')
-"
-fi
-
-# ---------------------------------------------------------------------------
 # Pre-install nvim plugins (both profiles) so the first interactive nvim start
 # isn't spent waiting on lazy.nvim. `Lazy! install` only clones missing plugins
 # (no updates), so it's a fast no-op on re-runs and doesn't touch lazy-lock.json.
