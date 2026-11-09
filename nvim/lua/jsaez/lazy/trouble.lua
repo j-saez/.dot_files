@@ -10,5 +10,6 @@ return {
     { "<leader>xr", "<cmd>Trouble lsp toggle focus=false win.position=right<cr>", desc = "LSP defs/refs/..." },
     { "<leader>xl", "<cmd>Trouble loclist toggle<cr>",                  desc = "Location list" },
     { "<leader>xq", "<cmd>Trouble qflist toggle<cr>",                   desc = "Quickfix list" },
+    { "<leader>t?", function() require("jsaez.trouble_help").open() end, desc = "Trouble keybindings help" },
   },
 }
