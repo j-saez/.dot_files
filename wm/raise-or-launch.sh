@@ -2,9 +2,11 @@
 # Cycles through windows whose WM_CLASS matches <class-pattern>: each run
 # raises the window after the currently focused one (wrapping around), so
 # repeated presses step through every matching window like a mini alt-tab
-# scoped to just that app. Runs <launch-cmd...> to start one if none exist.
+# scoped to just that app. Runs <launch-cmd...> to start one if none exist;
+# with no <launch-cmd> it only raises existing windows and does nothing
+# otherwise.
 #
-# Usage: raise-or-launch.sh <class-pattern> <launch-cmd> [args...]
+# Usage: raise-or-launch.sh <class-pattern> [<launch-cmd> [args...]]
 
 set -u
 
@@ -14,6 +16,7 @@ shift
 mapfile -t matches < <(wmctrl -lx | awk -v p="$class_pattern" 'tolower($3) ~ tolower(p) {print $1}')
 
 if [ "${#matches[@]}" -eq 0 ]; then
+    [ "$#" -eq 0 ] && exit 0
     "$@" &
     disown
     exit

@@ -14,3 +14,7 @@
 
 "@RAISE_OR_LAUNCH@ Slack /usr/bin/slack"
     Mod5 + 3
+
+# No launch command: only raises an existing RViz window (rviz / rviz2).
+"@RAISE_OR_LAUNCH@ rviz"
+    Mod5 + 4
