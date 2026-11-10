@@ -186,6 +186,13 @@ config = function()
       local cmd = {
         "clangd",
         "--background-index",
+        -- Memory control: peak RAM scales with worker count (each worker parses a
+        -- full TU), and clangd defaults to nproc workers. clangd has no
+        -- --memory-usage-limit flag, so these are the real levers.
+        "-j=4",
+        "--background-index-priority=low",
+        "--pch-storage=disk",
+        "--malloc-trim",
         "--clang-tidy",
         "--completion-style=detailed",
         "--header-insertion=never",
