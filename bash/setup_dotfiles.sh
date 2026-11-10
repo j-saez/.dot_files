@@ -597,7 +597,10 @@ elif dry; then
     echo "[dry-run] would pre-install nvim plugins (lazy.nvim)"
 elif [ -x "$NVIM_LOCAL_BIN" ]; then
     echo "Pre-installing nvim plugins (lazy.nvim)..."
-    if timeout 600 "$NVIM_LOCAL_BIN" --headless "+Lazy! install" +qa; then
+    # nvim_headless_wait.lua blocks until treesitter parsers and Mason packages
+    # finish, otherwise +qa aborts them and every run starts them over.
+    if timeout 900 "$NVIM_LOCAL_BIN" --headless "+Lazy! install" \
+        "+luafile $DEST_DIR/bash/nvim_headless_wait.lua" +qa; then
         echo "nvim plugins installed."
     else
         echo "WARNING: headless plugin install failed — lazy.nvim will retry on first nvim start." >&2
