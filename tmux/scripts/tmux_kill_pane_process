@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Kill the foreground process(es) running in the current pane, leaving the
+# pane's shell alive. Inspired by tmux-plugins/tmux-cowboy, but matches the
+# pane PID exactly (via pgrep -P) and kills every direct child.
+# Usage: tmux_kill_pane_process [PANE_ID] [SIGNAL]   (defaults: current pane, KILL)
+
+pane="${1:-$TMUX_PANE}"
+signal="${2:-KILL}"
+pane_pid=$(tmux display-message -p ${pane:+-t "$pane"} "#{pane_pid}")
+
+pids=$(pgrep -P "$pane_pid")
+if [ -z "$pids" ]; then
+    tmux display-message "Nothing running in this pane."
+    exit 0
+fi
+
+# shellcheck disable=SC2086
+kill -"$signal" $pids
+tmux display-message "Sent SIG$signal to: $(echo $pids)"
