@@ -23,8 +23,6 @@ entries=(
 "Pane|Alt-h/j/k/l|move between panes"
 "Pane|Alt-H/J/K/L|resize pane"
 "Pane|prefix + *|kill process running in pane (kill -9)"
-"Pane|prefix + Tab|toggle file-tree sidebar (treemux)"
-"Pane|prefix + Backspace|toggle sidebar and focus it (treemux)"
 "Copy|prefix + [|enter copy mode"
 "Copy|v|start selection (inside copy mode)"
 "Copy|y|copy selection to clipboard"
