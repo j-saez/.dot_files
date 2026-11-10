@@ -138,6 +138,13 @@ function _cwt_repo_id() {
         id="$g"
     elif [ -f "$g" ]; then
         id=$(sed -n 's/^gitdir: //p' "$g")
+        if [[ "$id" != */worktrees/* ]]; then
+            # Not a linked worktree: may be the root of a bare-repo layout
+            # (tii-slam/.git -> ./.bare), which has no checkout to build.
+            local target="$id"
+            [[ "$target" != /* ]] && target="$1/$target"
+            grep -qiE '^\s*bare\s*=\s*true' "$target/config" 2>/dev/null && return 1
+        fi
         id="${id%/worktrees/*}"
     else
         return 1
@@ -165,7 +172,8 @@ function fzf_colcon_worktree() {
             echo "Several different repos under $start; cd into one worktree or pass a more specific dir."
             return 1
         fi
-        seed=$(head -n1 <<< "$found")
+        # First entry that is a real checkout (skips a bare-layout root)
+        seed=$(while IFS= read -r wt; do _cwt_repo_id "$wt" >/dev/null && { echo "$wt"; break; }; done <<< "$found")
     fi
     id=$(_cwt_repo_id "$seed") || { echo "$seed is not a git worktree."; return 1; }
 
